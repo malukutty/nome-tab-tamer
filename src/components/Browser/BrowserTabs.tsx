@@ -20,7 +20,7 @@ export const useBrowserTabs = () => {
     const newTab = {
       id: uuidv4(),
       title: 'New Tab',
-      url: ''
+      url: ''  // Ensuring empty URL for new tabs
     };
     setTabs([...tabs, newTab]);
     setActiveTabId(newTab.id);
