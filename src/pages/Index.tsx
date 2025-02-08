@@ -11,8 +11,7 @@ import { useTabOrganization } from '@/hooks/useTabOrganization';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertTriangle } from 'lucide-react';
+import { Browser } from '@capacitor/browser';
 
 const Index = () => {
   const [tabs, setTabs] = useState<TabData[]>([
@@ -21,7 +20,6 @@ const Index = () => {
   const [activeTabId, setActiveTabId] = useState('1');
   const [summary, setSummary] = useState<string | null>(null);
   const [summarizing, setSummarizing] = useState(false);
-  const [iframeError, setIframeError] = useState(false);
   const { toast } = useToast();
   const { organizeTab } = useTabOrganization();
   const { user } = useAuth();
@@ -54,7 +52,6 @@ const Index = () => {
   };
 
   const handleNavigate = async (url: string) => {
-    setIframeError(false);
     let finalUrl = url;
     if (!url.startsWith('http://') && !url.startsWith('https://')) {
       finalUrl = `https://${url}`;
@@ -67,41 +64,48 @@ const Index = () => {
     );
     setTabs(updatedTabs);
 
-    const activeTab = updatedTabs.find(tab => tab.id === activeTabId);
-    if (activeTab && user) {
-      const groupId = organizeTab(activeTab);
-      if (groupId) {
-        try {
-          const { error } = await supabase
-            .from('saved_tabs')
-            .insert([{
-              title: activeTab.title,
-              url: activeTab.url,
-              group_id: groupId,
-              user_id: user.id
-            }]);
+    try {
+      // Open URL in browser
+      await Browser.open({ url: finalUrl });
 
-          if (error) throw error;
+      const activeTab = updatedTabs.find(tab => tab.id === activeTabId);
+      if (activeTab && user) {
+        const groupId = organizeTab(activeTab);
+        if (groupId) {
+          try {
+            const { error } = await supabase
+              .from('saved_tabs')
+              .insert([{
+                title: activeTab.title,
+                url: activeTab.url,
+                group_id: groupId,
+                user_id: user.id
+              }]);
 
-          toast({
-            title: "Tab organized",
-            description: "Tab has been automatically organized into a group",
-          });
-        } catch (error) {
-          console.error('Error saving tab:', error);
-          toast({
-            title: "Error organizing tab",
-            description: "Failed to organize tab into group",
-            variant: "destructive",
-          });
+            if (error) throw error;
+
+            toast({
+              title: "Tab organized",
+              description: "Tab has been automatically organized into a group",
+            });
+          } catch (error) {
+            console.error('Error saving tab:', error);
+            toast({
+              title: "Error organizing tab",
+              description: "Failed to organize tab into group",
+              variant: "destructive",
+            });
+          }
         }
       }
+    } catch (error) {
+      console.error('Error opening URL:', error);
+      toast({
+        title: "Error opening URL",
+        description: "Failed to open the URL in browser",
+        variant: "destructive",
+      });
     }
-    
-    toast({
-      title: "Navigation started",
-      description: "Loading new page...",
-    });
   };
 
   const handleSummarizeTabs = async () => {
@@ -141,15 +145,6 @@ const Index = () => {
 
   const activeTab = tabs.find(tab => tab.id === activeTabId);
 
-  const handleIframeError = () => {
-    setIframeError(true);
-    toast({
-      title: "Website cannot be displayed",
-      description: "This website cannot be displayed due to security restrictions",
-      variant: "destructive",
-    });
-  };
-
   return (
     <div className="flex flex-col h-screen bg-white animate-fade-in">
       <div className="flex flex-col flex-shrink-0">
@@ -162,38 +157,17 @@ const Index = () => {
         />
         <div className="flex items-center h-12 border-b border-nome-200">
           <NavigationControls
-            onBack={() => {}}
+            onBack={() => Browser.close()}
             onForward={() => {}}
             onRefresh={() => {}}
-            canGoBack={false}
+            canGoBack={true}
             canGoForward={false}
           />
           <AddressBar onNavigate={handleNavigate} />
         </div>
       </div>
       <div className="flex-1 bg-nome-50 overflow-hidden">
-        {activeTab?.url ? (
-          <>
-            <iframe
-              src={activeTab.url}
-              className={`w-full h-full border-none ${iframeError ? 'hidden' : ''}`}
-              title={activeTab.title}
-              sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
-              onError={handleIframeError}
-            />
-            {iframeError && (
-              <div className="p-4">
-                <Alert variant="destructive">
-                  <AlertTriangle className="h-4 w-4" />
-                  <AlertDescription>
-                    This website cannot be displayed in Nome due to security restrictions. 
-                    Please try opening it in your regular browser instead.
-                  </AlertDescription>
-                </Alert>
-              </div>
-            )}
-          </>
-        ) : (
+        {!activeTab?.url ? (
           <div className="p-4">
             <div className="w-full bg-white rounded-lg shadow-sm p-6 animate-slide-up space-y-6">
               <div>
@@ -223,6 +197,15 @@ const Index = () => {
                   </div>
                 )}
               </div>
+            </div>
+          </div>
+        ) : (
+          <div className="p-4">
+            <div className="w-full bg-white rounded-lg shadow-sm p-6">
+              <h2 className="text-xl font-semibold text-nome-800 mb-4">Tab Information</h2>
+              <p className="text-nome-600">
+                Current URL: <a href={activeTab.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">{activeTab.url}</a>
+              </p>
             </div>
           </div>
         )}
