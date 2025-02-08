@@ -19,7 +19,7 @@ const Auth = () => {
     
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === "SIGNED_IN") {
-        // Set up default banking rules for new users
+        // Set up default tab organization rules for new users
         await supabase.rpc('setup_default_banking_rules', {
           user_uuid: session?.user.id
         });
@@ -38,3 +38,4 @@ const Auth = () => {
 };
 
 export default Auth;
+
