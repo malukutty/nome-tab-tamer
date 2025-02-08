@@ -10,6 +10,7 @@ import TabOrganizer from '@/components/Browser/TabOrganizer';
 import Categories from '@/components/Browser/Categories';
 import WelcomeSection from '@/components/Browser/WelcomeSection';
 import { useBrowserEvents } from '@/hooks/useBrowserEvents';
+import Navbar from '@/components/Layout/Navbar';
 
 const Index = () => {
   const {
@@ -88,6 +89,7 @@ const Index = () => {
 
   return (
     <div className="flex flex-col h-screen bg-white animate-fade-in">
+      <Navbar />
       <div className="flex flex-col flex-shrink-0">
         <BrowserTabs onNavigate={handleNavigate} />
         <BrowserControls 
