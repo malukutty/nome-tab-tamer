@@ -16,7 +16,7 @@ const Index = () => {
     tabs,
     setTabs,
     activeTabId,
-    setTabBrowserInstance
+    setActiveTabId
   } = useBrowserTabs();
   
   const { toast } = useToast();
@@ -38,9 +38,6 @@ const Index = () => {
     setTabs(updatedTabs);
 
     try {
-      // Close any existing browser instances
-      await Browser.close();
-
       const browserOptions: BrowserOpenOptions = {
         url: formattedUrl,
         presentationStyle: 'popover',
@@ -50,6 +47,7 @@ const Index = () => {
       // Open new browser instance
       await Browser.open(browserOptions);
 
+      // Save tab if user is logged in
       const activeTab = updatedTabs.find(tab => tab.id === activeTabId);
       if (activeTab && user) {
         const groupId = organizeTab(activeTab);
@@ -90,13 +88,41 @@ const Index = () => {
     }
   };
 
+  const handleTabSwitch = async (tabId: string) => {
+    const targetTab = tabs.find(tab => tab.id === tabId);
+    if (targetTab?.url) {
+      setActiveTabId(tabId);
+      try {
+        // Close current browser instance
+        await Browser.close();
+        
+        // Open the target tab's URL
+        await Browser.open({
+          url: targetTab.url,
+          presentationStyle: 'popover',
+          toolbarColor: '#ffffff',
+        });
+      } catch (error) {
+        console.error('Error switching tabs:', error);
+        toast({
+          title: "Error",
+          description: "Failed to switch tabs",
+          variant: "destructive",
+        });
+      }
+    }
+  };
+
   const activeTab = tabs.find(tab => tab.id === activeTabId);
 
   return (
     <div className="flex flex-col h-screen bg-white animate-fade-in">
       <Navbar />
       <div className="flex flex-col flex-shrink-0">
-        <BrowserTabs onNavigate={handleNavigate} />
+        <BrowserTabs 
+          onNavigate={handleNavigate}
+          onTabSwitch={handleTabSwitch}
+        />
         <BrowserControls 
           onNavigate={handleNavigate}
           activeTabUrl={activeTab?.url}

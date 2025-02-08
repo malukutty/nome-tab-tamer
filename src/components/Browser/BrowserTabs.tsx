@@ -7,12 +7,13 @@ import { Browser } from '@capacitor/browser';
 import TabBar from './TabBar';
 
 interface BrowserTabsProps {
-  onNavigate: (url: string, tabId: string) => void;
+  onNavigate: (url: string) => void;
+  onTabSwitch: (tabId: string) => void;
 }
 
 export const useBrowserTabs = () => {
   const [tabs, setTabs] = useState<TabData[]>([
-    { id: '1', title: 'New Tab', url: '', browserInstance: null }
+    { id: '1', title: 'New Tab', url: '' }
   ]);
   const [activeTabId, setActiveTabId] = useState('1');
   const { toast } = useToast();
@@ -21,8 +22,7 @@ export const useBrowserTabs = () => {
     const newTab = {
       id: uuidv4(),
       title: 'New Tab',
-      url: '',
-      browserInstance: null
+      url: ''
     };
     setTabs([...tabs, newTab]);
     setActiveTabId(newTab.id);
@@ -37,43 +37,33 @@ export const useBrowserTabs = () => {
       return;
     }
 
-    const tabToClose = tabs.find(tab => tab.id === id);
-    if (tabToClose?.browserInstance) {
-      try {
-        await Browser.close();
-      } catch (error) {
-        console.error('Error closing browser instance:', error);
-      }
-    }
-
-    const newTabs = tabs.filter(tab => tab.id !== id);
-    setTabs(newTabs);
-    
-    if (id === activeTabId) {
-      const lastTab = newTabs[newTabs.length - 1];
-      setActiveTabId(lastTab.id);
-      if (lastTab.browserInstance && lastTab.url) {
-        try {
+    try {
+      // Always close the current browser instance when closing a tab
+      await Browser.close();
+      
+      const newTabs = tabs.filter(tab => tab.id !== id);
+      setTabs(newTabs);
+      
+      if (id === activeTabId) {
+        const lastTab = newTabs[newTabs.length - 1];
+        setActiveTabId(lastTab.id);
+        // Reopen the last tab's URL if it exists
+        if (lastTab.url) {
           await Browser.open({
             url: lastTab.url,
             presentationStyle: 'popover',
             toolbarColor: '#ffffff',
           });
-        } catch (error) {
-          console.error('Error reopening tab:', error);
         }
       }
+    } catch (error) {
+      console.error('Error handling tab close:', error);
+      toast({
+        title: "Error",
+        description: "Failed to close tab properly",
+        variant: "destructive",
+      });
     }
-  };
-
-  const setTabBrowserInstance = (tabId: string, instance: any) => {
-    setTabs(prevTabs => 
-      prevTabs.map(tab => 
-        tab.id === tabId 
-          ? { ...tab, browserInstance: instance }
-          : tab
-      )
-    );
   };
 
   return {
@@ -82,12 +72,11 @@ export const useBrowserTabs = () => {
     activeTabId,
     setActiveTabId,
     handleNewTab,
-    handleTabClose,
-    setTabBrowserInstance
+    handleTabClose
   };
 };
 
-const BrowserTabs = ({ onNavigate }: BrowserTabsProps) => {
+const BrowserTabs = ({ onNavigate, onTabSwitch }: BrowserTabsProps) => {
   const {
     tabs,
     activeTabId,
@@ -96,11 +85,15 @@ const BrowserTabs = ({ onNavigate }: BrowserTabsProps) => {
     handleTabClose
   } = useBrowserTabs();
 
+  const handleTabClick = (tabId: string) => {
+    onTabSwitch(tabId);
+  };
+
   return (
     <TabBar
       tabs={tabs}
       activeTabId={activeTabId}
-      onTabClick={setActiveTabId}
+      onTabClick={handleTabClick}
       onTabClose={handleTabClose}
       onNewTab={handleNewTab}
     />
