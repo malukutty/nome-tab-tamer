@@ -8,6 +8,8 @@ import TabOrganizer from '@/components/Browser/TabOrganizer';
 import { TabData } from '@/types/browser';
 import { useToast } from '@/hooks/use-toast';
 import { useTabOrganization } from '@/hooks/useTabOrganization';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
 
 const Index = () => {
   const [tabs, setTabs] = useState<TabData[]>([
@@ -16,6 +18,7 @@ const Index = () => {
   const [activeTabId, setActiveTabId] = useState('1');
   const { toast } = useToast();
   const { organizeTab } = useTabOrganization();
+  const { user } = useAuth();
 
   const handleNewTab = () => {
     const newTab = {
@@ -44,7 +47,7 @@ const Index = () => {
     }
   };
 
-  const handleNavigate = (url: string) => {
+  const handleNavigate = async (url: string) => {
     const updatedTabs = tabs.map(tab => 
       tab.id === activeTabId 
         ? { ...tab, url, title: url } 
@@ -54,11 +57,34 @@ const Index = () => {
 
     // Automatically organize the tab
     const activeTab = updatedTabs.find(tab => tab.id === activeTabId);
-    if (activeTab) {
+    if (activeTab && user) {
       const groupId = organizeTab(activeTab);
       if (groupId) {
         // Save the tab to the group
-        saveTabToGroup(activeTab, groupId);
+        try {
+          const { error } = await supabase
+            .from('saved_tabs')
+            .insert([{
+              title: activeTab.title,
+              url: activeTab.url,
+              group_id: groupId,
+              user_id: user.id
+            }]);
+
+          if (error) throw error;
+
+          toast({
+            title: "Tab organized",
+            description: "Tab has been automatically organized into a group",
+          });
+        } catch (error) {
+          console.error('Error saving tab:', error);
+          toast({
+            title: "Error organizing tab",
+            description: "Failed to organize tab into group",
+            variant: "destructive",
+          });
+        }
       }
     }
     
@@ -66,32 +92,6 @@ const Index = () => {
       title: "Navigation started",
       description: "Loading new page...",
     });
-  };
-
-  const saveTabToGroup = async (tab: TabData, groupId: string) => {
-    try {
-      const { error } = await supabase
-        .from('saved_tabs')
-        .insert([{
-          title: tab.title,
-          url: tab.url,
-          group_id: groupId
-        }]);
-
-      if (error) throw error;
-
-      toast({
-        title: "Tab organized",
-        description: "Tab has been automatically organized into a group",
-      });
-    } catch (error) {
-      console.error('Error saving tab:', error);
-      toast({
-        title: "Error organizing tab",
-        description: "Failed to organize tab into group",
-        variant: "destructive",
-      });
-    }
   };
 
   return (
@@ -135,3 +135,4 @@ const Index = () => {
 };
 
 export default Index;
+

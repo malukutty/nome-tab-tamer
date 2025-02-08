@@ -4,45 +4,60 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { TabGroup, TabRule, TabData, TabGroupResponse, TabRuleResponse } from '@/types/browser';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/useAuth';
 
 export const useTabOrganization = () => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const { user } = useAuth();
 
   // Fetch tab groups
   const { data: groups = [], isLoading: loadingGroups } = useQuery({
     queryKey: ['tabGroups'],
     queryFn: async () => {
+      if (!user) return [];
+      
       const { data, error } = await supabase
         .from('tab_groups')
         .select('*')
+        .eq('user_id', user.id)
         .order('created_at', { ascending: true });
 
       if (error) throw error;
       return (data as TabGroupResponse[]) || [];
     },
+    enabled: !!user,
   });
 
   // Fetch tab rules
   const { data: rules = [], isLoading: loadingRules } = useQuery({
     queryKey: ['tabRules'],
     queryFn: async () => {
+      if (!user) return [];
+
       const { data, error } = await supabase
         .from('tab_rules')
         .select('*')
+        .eq('user_id', user.id)
         .order('priority', { ascending: false });
 
       if (error) throw error;
       return (data as TabRuleResponse[]) || [];
     },
+    enabled: !!user,
   });
 
   // Create new group
   const createGroup = useMutation({
     mutationFn: async (name: string) => {
+      if (!user) throw new Error('User not authenticated');
+
       const { data, error } = await supabase
         .from('tab_groups')
-        .insert([{ name }])
+        .insert([{ 
+          name,
+          user_id: user.id 
+        }])
         .select()
         .single();
 
@@ -68,9 +83,16 @@ export const useTabOrganization = () => {
   // Create new rule
   const createRule = useMutation({
     mutationFn: async ({ groupId, pattern, priority }: { groupId: string; pattern: string; priority: number }) => {
+      if (!user) throw new Error('User not authenticated');
+
       const { data, error } = await supabase
         .from('tab_rules')
-        .insert([{ group_id: groupId, pattern, priority }])
+        .insert([{ 
+          group_id: groupId, 
+          pattern, 
+          priority,
+          user_id: user.id 
+        }])
         .select()
         .single();
 
@@ -168,3 +190,4 @@ export const useTabOrganization = () => {
     organizeTab,
   };
 };
+
