@@ -1,69 +1,76 @@
 
 import { TabData } from '@/types/browser';
-import { TabRuleResponse } from '@/types/browser';
+import { TabRuleResponse, TabGroupResponse } from '@/types/browser';
 
-export const organizeTab = (tab: TabData, rules: TabRuleResponse[], groups: any[]) => {
+type UrlPatternMap = {
+  [key: string]: RegExp[];
+};
+
+const urlPatterns: UrlPatternMap = {
+  socialMedia: [
+    /facebook\.com/,
+    /twitter\.com/,
+    /instagram\.com/,
+    /tiktok\.com/,
+    /linkedin\.com/,
+    /reddit\.com/,
+    /snapchat\.com/,
+    /pinterest\.com/,
+    /threads\.net/,
+  ],
+  technology: [
+    /github\.com/,
+    /stackoverflow\.com/,
+    /openai\.com/,
+    /aws\.amazon\.com/,
+    /cloud\.google\.com/,
+    /azure\.microsoft\.com/,
+    /digitalocean\.com/,
+    /vercel\.com/,
+    /netlify\.com/,
+    /heroku\.com/,
+    /medium\.com/,
+    /dev\.to/,
+  ],
+  shopping: [
+    /amazon\./,
+    /ebay\.com/,
+    /walmart\.com/,
+    /etsy\.com/,
+    /bestbuy\.com/,
+    /target\.com/,
+    /shopify\.com/,
+  ],
+  entertainment: [
+    /youtube\.com/,
+    /netflix\.com/,
+    /spotify\.com/,
+    /disney\.com/,
+    /hulu\.com/,
+    /twitch\.tv/,
+    /vimeo\.com/,
+    /hbomax\.com/,
+    /primevideo\.com/,
+  ],
+  news: [
+    /cnn\.com/,
+    /bbc\.co\.uk/,
+    /nytimes\.com/,
+    /reuters\.com/,
+    /bloomberg\.com/,
+    /wsj\.com/,
+    /theguardian\.com/,
+    /washingtonpost\.com/,
+  ],
+};
+
+export const organizeTab = (
+  tab: TabData, 
+  rules: TabRuleResponse[], 
+  groups: TabGroupResponse[]
+): string | null => {
   // Normalize URL to lowercase for better matching
   const normalizedUrl = tab.url.toLowerCase();
-
-  // Common URL patterns for different categories
-  const urlPatterns = {
-    socialMedia: [
-      /facebook\.com/,
-      /twitter\.com/,
-      /instagram\.com/,
-      /tiktok\.com/,
-      /linkedin\.com/,
-      /reddit\.com/,
-      /snapchat\.com/,
-      /pinterest\.com/,
-      /threads\.net/,
-    ],
-    technology: [
-      /github\.com/,
-      /stackoverflow\.com/,
-      /openai\.com/,
-      /aws\.amazon\.com/,
-      /cloud\.google\.com/,
-      /azure\.microsoft\.com/,
-      /digitalocean\.com/,
-      /vercel\.com/,
-      /netlify\.com/,
-      /heroku\.com/,
-      /medium\.com/,
-      /dev\.to/,
-    ],
-    shopping: [
-      /amazon\./,
-      /ebay\.com/,
-      /walmart\.com/,
-      /etsy\.com/,
-      /bestbuy\.com/,
-      /target\.com/,
-      /shopify\.com/,
-    ],
-    entertainment: [
-      /youtube\.com/,
-      /netflix\.com/,
-      /spotify\.com/,
-      /disney\.com/,
-      /hulu\.com/,
-      /twitch\.tv/,
-      /vimeo\.com/,
-      /hbomax\.com/,
-      /primevideo\.com/,
-    ],
-    news: [
-      /cnn\.com/,
-      /bbc\.co\.uk/,
-      /nytimes\.com/,
-      /reuters\.com/,
-      /bloomberg\.com/,
-      /wsj\.com/,
-      /theguardian\.com/,
-      /washingtonpost\.com/,
-    ],
-  };
 
   // First check custom rules from database
   for (const rule of rules) {
