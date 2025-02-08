@@ -12,6 +12,12 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 
+interface PageContent {
+  title: string;
+  content: string;
+  textContent: string;
+}
+
 const Index = () => {
   const [tabs, setTabs] = useState<TabData[]>([
     { id: '1', title: 'New Tab', url: '' }
@@ -19,6 +25,9 @@ const Index = () => {
   const [activeTabId, setActiveTabId] = useState('1');
   const [summary, setSummary] = useState<string | null>(null);
   const [summarizing, setSummarizing] = useState(false);
+  const [pageContent, setPageContent] = useState<PageContent | null>(null);
+  const [isReaderMode, setIsReaderMode] = useState(false);
+  const [loading, setLoading] = useState(false);
   const { toast } = useToast();
   const { organizeTab } = useTabOrganization();
   const { user } = useAuth();
@@ -56,42 +65,68 @@ const Index = () => {
       finalUrl = `https://${url}`;
     }
 
-    const updatedTabs = tabs.map(tab => 
-      tab.id === activeTabId 
-        ? { ...tab, url: finalUrl, title: url } 
-        : tab
-    );
-    setTabs(updatedTabs);
+    setLoading(true);
+    setPageContent(null);
+    setIsReaderMode(false);
 
-    const activeTab = updatedTabs.find(tab => tab.id === activeTabId);
-    if (activeTab && user) {
-      const groupId = organizeTab(activeTab);
-      if (groupId) {
-        try {
-          const { error } = await supabase
-            .from('saved_tabs')
-            .insert([{
-              title: activeTab.title,
-              url: activeTab.url,
-              group_id: groupId,
-              user_id: user.id
-            }]);
+    try {
+      const { data, error } = await supabase.functions.invoke('fetch-page', {
+        body: { url: finalUrl }
+      });
 
-          if (error) throw error;
+      if (error) throw error;
 
-          toast({
-            title: "Tab organized",
-            description: "Tab has been automatically organized into a group",
-          });
-        } catch (error) {
-          console.error('Error saving tab:', error);
-          toast({
-            title: "Error organizing tab",
-            description: "Failed to organize tab into group",
-            variant: "destructive",
-          });
+      const updatedTabs = tabs.map(tab => 
+        tab.id === activeTabId 
+          ? { ...tab, url: finalUrl, title: data.title || url } 
+          : tab
+      );
+      setTabs(updatedTabs);
+      setPageContent({
+        title: data.title,
+        content: data.content,
+        textContent: data.textContent
+      });
+
+      const activeTab = updatedTabs.find(tab => tab.id === activeTabId);
+      if (activeTab && user) {
+        const groupId = organizeTab(activeTab);
+        if (groupId) {
+          try {
+            const { error } = await supabase
+              .from('saved_tabs')
+              .insert([{
+                title: activeTab.title,
+                url: activeTab.url,
+                group_id: groupId,
+                user_id: user.id
+              }]);
+
+            if (error) throw error;
+
+            toast({
+              title: "Tab organized",
+              description: "Tab has been automatically organized into a group",
+            });
+          } catch (error) {
+            console.error('Error saving tab:', error);
+            toast({
+              title: "Error organizing tab",
+              description: "Failed to organize tab into group",
+              variant: "destructive",
+            });
+          }
         }
       }
+    } catch (error) {
+      console.error('Error fetching page:', error);
+      toast({
+        title: "Error loading page",
+        description: "Failed to load the webpage content",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -144,11 +179,11 @@ const Index = () => {
         />
         <div className="flex items-center h-12 border-b border-nome-200">
           <NavigationControls
-            onBack={() => {}}
-            onForward={() => {}}
-            onRefresh={() => {}}
-            canGoBack={false}
-            canGoForward={false}
+            onBack={() => setIsReaderMode(false)}
+            onForward={() => setIsReaderMode(true)}
+            onRefresh={() => activeTab?.url && handleNavigate(activeTab.url)}
+            canGoBack={isReaderMode}
+            canGoForward={!isReaderMode && !!pageContent}
           />
           <AddressBar onNavigate={handleNavigate} />
         </div>
@@ -186,13 +221,40 @@ const Index = () => {
               </div>
             </div>
           </div>
+        ) : loading ? (
+          <div className="flex items-center justify-center h-full">
+            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-nome-600"></div>
+          </div>
+        ) : isReaderMode && pageContent ? (
+          <div className="p-4 max-w-4xl mx-auto">
+            <div className="bg-white rounded-lg shadow-sm p-6">
+              <h1 className="text-2xl font-semibold text-nome-800 mb-4">{pageContent.title}</h1>
+              <div 
+                className="prose prose-nome max-w-none"
+                dangerouslySetInnerHTML={{ __html: pageContent.content }}
+              />
+            </div>
+          </div>
         ) : (
-          <iframe
-            src={activeTab.url}
-            className="w-full h-full border-none"
-            sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
-            title={activeTab.title}
-          />
+          <div className="p-4">
+            <div className="w-full bg-white rounded-lg shadow-sm p-6">
+              {pageContent ? (
+                <>
+                  <h2 className="text-xl font-semibold text-nome-800 mb-4">{pageContent.title}</h2>
+                  <p className="text-nome-600 mb-4">
+                    This website cannot be embedded directly due to security restrictions.
+                  </p>
+                  <p className="text-nome-600">
+                    Click the forward button in the navigation bar to view the content in reader mode.
+                  </p>
+                </>
+              ) : (
+                <div className="text-center text-nome-600">
+                  Failed to load content. Please try again.
+                </div>
+              )}
+            </div>
+          </div>
         )}
       </div>
     </div>
