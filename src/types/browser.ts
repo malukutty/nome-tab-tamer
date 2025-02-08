@@ -1,9 +1,12 @@
+
 export interface TabData {
   id: string;
   title: string;
   url: string;
   content?: string;
-  browserInstance?: any;
+  webviewInstance?: any;
+  order_index: number;
+  is_active: boolean;
 }
 
 export interface TabGroup {

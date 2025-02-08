@@ -133,6 +133,36 @@ export type Database = {
           },
         ]
       }
+      tab_states: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean | null
+          order_index: number
+          title: string
+          url: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          order_index: number
+          title: string
+          url: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          order_index?: number
+          title?: string
+          url?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

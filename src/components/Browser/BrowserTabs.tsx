@@ -1,31 +1,105 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { v4 as uuidv4 } from '@/lib/utils';
 import { TabData } from '@/types/browser';
 import { useToast } from '@/hooks/use-toast';
-import { Browser } from '@capacitor/browser';
+import { WebView } from '@capacitor/core';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
 import TabBar from './TabBar';
 
 interface BrowserTabsProps {
-  onNavigate: (url: string) => void;
+  onNavigate: (url: string, tabId: string) => void;
   onTabSwitch: (tabId: string) => void;
 }
 
 export const useBrowserTabs = () => {
   const [tabs, setTabs] = useState<TabData[]>([
-    { id: '1', title: 'New Tab', url: '' }
+    { id: '1', title: 'New Tab', url: '', order_index: 0, is_active: true }
   ]);
   const [activeTabId, setActiveTabId] = useState('1');
   const { toast } = useToast();
+  const { user } = useAuth();
 
-  const handleNewTab = () => {
-    const newTab = {
+  useEffect(() => {
+    if (user) {
+      loadUserTabs();
+    }
+  }, [user]);
+
+  const loadUserTabs = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('tab_states')
+        .select('*')
+        .eq('user_id', user?.id)
+        .order('order_index', { ascending: true });
+
+      if (error) throw error;
+
+      if (data && data.length > 0) {
+        setTabs(data.map(tab => ({
+          ...tab,
+          webviewInstance: null
+        })));
+        const activeTab = data.find(tab => tab.is_active);
+        if (activeTab) {
+          setActiveTabId(activeTab.id);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading tabs:', error);
+      toast({
+        title: "Error loading tabs",
+        description: "Failed to load your saved tabs",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleNewTab = async () => {
+    if (!user) return;
+
+    const newTab: TabData = {
       id: uuidv4(),
       title: 'New Tab',
-      url: ''
+      url: '',
+      order_index: tabs.length,
+      is_active: true
     };
-    setTabs([...tabs, newTab]);
-    setActiveTabId(newTab.id);
+
+    try {
+      // Update database
+      const { error: updateError } = await supabase
+        .from('tab_states')
+        .update({ is_active: false })
+        .eq('user_id', user.id);
+
+      if (updateError) throw updateError;
+
+      const { error: insertError } = await supabase
+        .from('tab_states')
+        .insert([{
+          ...newTab,
+          user_id: user.id
+        }]);
+
+      if (insertError) throw insertError;
+
+      // Update local state
+      setTabs(prevTabs => prevTabs.map(tab => ({
+        ...tab,
+        is_active: false
+      })).concat(newTab));
+      setActiveTabId(newTab.id);
+    } catch (error) {
+      console.error('Error creating new tab:', error);
+      toast({
+        title: "Error",
+        description: "Failed to create new tab",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleTabClose = async (id: string) => {
@@ -38,26 +112,32 @@ export const useBrowserTabs = () => {
     }
 
     try {
-      // Always close the current browser instance when closing a tab
-      await Browser.close();
-      
+      if (user) {
+        const { error } = await supabase
+          .from('tab_states')
+          .delete()
+          .eq('id', id)
+          .eq('user_id', user.id);
+
+        if (error) throw error;
+      }
+
       const newTabs = tabs.filter(tab => tab.id !== id);
       setTabs(newTabs);
-      
+
       if (id === activeTabId) {
         const lastTab = newTabs[newTabs.length - 1];
         setActiveTabId(lastTab.id);
-        // Reopen the last tab's URL if it exists
-        if (lastTab.url) {
-          await Browser.open({
-            url: lastTab.url,
-            presentationStyle: 'popover',
-            toolbarColor: '#ffffff',
-          });
+        if (user) {
+          await supabase
+            .from('tab_states')
+            .update({ is_active: true })
+            .eq('id', lastTab.id)
+            .eq('user_id', user.id);
         }
       }
     } catch (error) {
-      console.error('Error handling tab close:', error);
+      console.error('Error closing tab:', error);
       toast({
         title: "Error",
         description: "Failed to close tab properly",
@@ -85,7 +165,8 @@ const BrowserTabs = ({ onNavigate, onTabSwitch }: BrowserTabsProps) => {
     handleTabClose
   } = useBrowserTabs();
 
-  const handleTabClick = (tabId: string) => {
+  const handleTabClick = async (tabId: string) => {
+    setActiveTabId(tabId);
     onTabSwitch(tabId);
   };
 

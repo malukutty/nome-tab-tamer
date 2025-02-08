@@ -1,5 +1,5 @@
 
-import { Browser, BrowserOpenOptions } from '@capacitor/browser';
+import { useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useTabOrganization } from '@/hooks/useTabOrganization';
 import { useAuth } from '@/hooks/useAuth';
@@ -10,6 +10,7 @@ import Categories from '@/components/Browser/Categories';
 import WelcomeSection from '@/components/Browser/WelcomeSection';
 import { useBrowserEvents } from '@/hooks/useBrowserEvents';
 import Navbar from '@/components/Layout/Navbar';
+import { WebView } from '@capacitor/core';
 
 const Index = () => {
   const {
@@ -26,29 +27,31 @@ const Index = () => {
   // Set up browser event listeners
   useBrowserEvents();
 
-  const handleNavigate = async (url: string) => {
+  const handleNavigate = async (url: string, tabId: string) => {
     const formattedUrl = url.startsWith('http') ? url : `https://${url}`;
     
-    // Update the tab's URL first
-    const updatedTabs = tabs.map(tab => 
-      tab.id === activeTabId 
-        ? { ...tab, url: formattedUrl, title: formattedUrl } 
-        : tab
-    );
-    setTabs(updatedTabs);
-
     try {
-      const browserOptions: BrowserOpenOptions = {
-        url: formattedUrl,
-        presentationStyle: 'popover',
-        toolbarColor: '#ffffff',
-      };
+      // Update the tab's URL first
+      const updatedTabs = tabs.map(tab => 
+        tab.id === tabId 
+          ? { ...tab, url: formattedUrl, title: formattedUrl } 
+          : tab
+      );
+      setTabs(updatedTabs);
 
-      // Open new browser instance
-      await Browser.open(browserOptions);
+      // Create or update WebView for this tab
+      const webview = document.createElement('capacitor-web-view');
+      webview.setAttribute('src', formattedUrl);
+      webview.style.display = 'none'; // Initially hidden
+      document.body.appendChild(webview);
+
+      // Show the WebView for active tab
+      if (tabId === activeTabId) {
+        webview.style.display = 'block';
+      }
 
       // Save tab if user is logged in
-      const activeTab = updatedTabs.find(tab => tab.id === activeTabId);
+      const activeTab = updatedTabs.find(tab => tab.id === tabId);
       if (activeTab && user) {
         const groupId = organizeTab(activeTab);
         if (groupId) {
@@ -79,37 +82,60 @@ const Index = () => {
         }
       }
     } catch (error) {
-      console.error('Error opening WebView:', error);
+      console.error('Error loading webpage:', error);
       toast({
         title: "Navigation error",
-        description: "Failed to open the page",
+        description: "Failed to load the page",
         variant: "destructive",
       });
     }
   };
 
   const handleTabSwitch = async (tabId: string) => {
-    const targetTab = tabs.find(tab => tab.id === tabId);
-    if (targetTab?.url) {
-      setActiveTabId(tabId);
-      try {
-        // Close current browser instance
-        await Browser.close();
-        
-        // Open the target tab's URL
-        await Browser.open({
-          url: targetTab.url,
-          presentationStyle: 'popover',
-          toolbarColor: '#ffffff',
-        });
-      } catch (error) {
-        console.error('Error switching tabs:', error);
-        toast({
-          title: "Error",
-          description: "Failed to switch tabs",
-          variant: "destructive",
-        });
+    if (!user) return;
+
+    try {
+      // Hide all WebViews
+      const webviews = document.querySelectorAll('capacitor-web-view');
+      webviews.forEach(webview => {
+        (webview as HTMLElement).style.display = 'none';
+      });
+
+      // Show the selected tab's WebView
+      const targetTab = tabs.find(tab => tab.id === tabId);
+      if (targetTab?.url) {
+        const webview = Array.from(webviews).find(w => 
+          w.getAttribute('src') === targetTab.url
+        );
+        if (webview) {
+          (webview as HTMLElement).style.display = 'block';
+        }
       }
+
+      // Update active state in database
+      const { error: updateError } = await supabase
+        .from('tab_states')
+        .update({ is_active: false })
+        .eq('user_id', user.id);
+
+      if (updateError) throw updateError;
+
+      const { error: activeError } = await supabase
+        .from('tab_states')
+        .update({ is_active: true })
+        .eq('id', tabId)
+        .eq('user_id', user.id);
+
+      if (activeError) throw activeError;
+
+      setActiveTabId(tabId);
+    } catch (error) {
+      console.error('Error switching tabs:', error);
+      toast({
+        title: "Error",
+        description: "Failed to switch tabs",
+        variant: "destructive",
+      });
     }
   };
 
@@ -124,7 +150,7 @@ const Index = () => {
           onTabSwitch={handleTabSwitch}
         />
         <BrowserControls 
-          onNavigate={handleNavigate}
+          onNavigate={(url) => handleNavigate(url, activeTabId)}
           activeTabUrl={activeTab?.url}
         />
       </div>
