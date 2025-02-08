@@ -4,13 +4,11 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { 
-  Newspaper, 
-  ShoppingCart, 
-  Computer, 
   CreditCard,
   Share2,
   ExternalLink,
-  Trash2
+  Trash2,
+  Folder
 } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import TabSummary from './TabSummary';
@@ -25,12 +23,57 @@ interface CategoriesProps {
   tabs: TabData[];
 }
 
+interface Category {
+  id: string;
+  name: string;
+  icon?: JSX.Element;
+  description?: string;
+  color?: string;
+}
+
 const Categories = ({ tabs }: CategoriesProps) => {
   const isMobile = useIsMobile();
   const { toast } = useToast();
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+
+  // Fetch categories (tab groups)
+  const { data: categories = [] } = useQuery({
+    queryKey: ['tabGroups'],
+    queryFn: async () => {
+      if (!user) return [];
+      
+      const { data, error } = await supabase
+        .from('tab_groups')
+        .select('*')
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+
+      // Map database categories to UI format with default icons and colors
+      return data.map((group): Category => {
+        const defaultIcons: Record<string, any> = {
+          'Banking & Finance': { icon: CreditCard, color: 'bg-blue-500' },
+          'News & Media': { icon: Share2, color: 'bg-amber-500' },
+          'Shopping': { icon: Share2, color: 'bg-green-500' },
+          'Technology': { icon: Share2, color: 'bg-purple-500' },
+          'Social Media': { icon: Share2, color: 'bg-pink-500' }
+        };
+
+        const defaultCategory = defaultIcons[group.name] || { icon: Folder, color: 'bg-gray-500' };
+
+        return {
+          id: group.id,
+          name: group.name,
+          icon: defaultCategory.icon,
+          color: defaultCategory.color,
+          description: `Organize your ${group.name.toLowerCase()} tabs`
+        };
+      });
+    },
+    enabled: !!user,
+  });
 
   // Fetch saved tabs
   const { data: savedTabs = [] } = useQuery({
@@ -40,11 +83,11 @@ const Categories = ({ tabs }: CategoriesProps) => {
       
       const query = supabase
         .from('saved_tabs')
-        .select('*, tab_groups!inner(*)')
+        .select('*')
         .eq('user_id', user.id);
 
       if (selectedCategory) {
-        query.eq('tab_groups.name', selectedCategory);
+        query.eq('group_id', selectedCategory);
       }
 
       const { data, error } = await query;
@@ -80,39 +123,6 @@ const Categories = ({ tabs }: CategoriesProps) => {
     },
   });
 
-  const categories = [
-    {
-      name: 'Banking & Finance',
-      icon: CreditCard,
-      description: 'Track your finances and banking activities',
-      color: 'bg-blue-500'
-    },
-    {
-      name: 'News & Media',
-      icon: Newspaper,
-      description: 'Stay updated with the latest news',
-      color: 'bg-amber-500'
-    },
-    {
-      name: 'Shopping',
-      icon: ShoppingCart,
-      description: 'Organize your shopping tabs',
-      color: 'bg-green-500'
-    },
-    {
-      name: 'Technology',
-      icon: Computer,
-      description: 'Keep track of tech-related content',
-      color: 'bg-purple-500'
-    },
-    {
-      name: 'Social Media',
-      icon: Share2,
-      description: 'Manage your social media tabs',
-      color: 'bg-pink-500'
-    }
-  ];
-
   const handleOpenTab = async (url: string) => {
     window.open(url, '_blank');
   };
@@ -127,9 +137,9 @@ const Categories = ({ tabs }: CategoriesProps) => {
       <div className={`grid ${isMobile ? 'grid-cols-1' : 'grid-cols-2 lg:grid-cols-3'} gap-4`}>
         {categories.map((category) => (
           <Card 
-            key={category.name} 
+            key={category.id} 
             className="group hover:shadow-md transition-shadow cursor-pointer"
-            onClick={() => setSelectedCategory(category.name)}
+            onClick={() => setSelectedCategory(category.id)}
           >
             <CardContent className="p-6">
               <div className="flex items-start space-x-4">
@@ -149,7 +159,9 @@ const Categories = ({ tabs }: CategoriesProps) => {
       <Dialog open={!!selectedCategory} onOpenChange={() => setSelectedCategory(null)}>
         <DialogContent className="sm:max-w-[600px]">
           <DialogHeader>
-            <DialogTitle>{selectedCategory}</DialogTitle>
+            <DialogTitle>
+              {categories.find(c => c.id === selectedCategory)?.name}
+            </DialogTitle>
           </DialogHeader>
           <ScrollArea className="h-[400px] w-full rounded-md border p-4">
             {savedTabs.length > 0 ? (
