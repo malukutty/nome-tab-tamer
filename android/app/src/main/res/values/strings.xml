@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">nome</string>
+    <string name="title_activity_main">nome</string>
+    <string name="package_name">app.lovable.nometabtamer</string>
+    <string name="custom_url_scheme">app.lovable.nometabtamer</string>
+</resources>
