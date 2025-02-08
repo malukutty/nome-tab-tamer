@@ -22,7 +22,7 @@ const BrowserControls = ({ onNavigate, activeTabUrl }: BrowserControlsProps) => 
         canGoBack={true}
         canGoForward={false}
       />
-      <AddressBar onNavigate={onNavigate} />
+      <AddressBar onNavigate={onNavigate} currentUrl={activeTabUrl} />
     </div>
   );
 };

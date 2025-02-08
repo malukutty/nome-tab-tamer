@@ -1,15 +1,20 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Search } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
 interface AddressBarProps {
   onNavigate: (url: string) => void;
+  currentUrl?: string;
 }
 
-const AddressBar = ({ onNavigate }: AddressBarProps) => {
+const AddressBar = ({ onNavigate, currentUrl }: AddressBarProps) => {
   const [url, setUrl] = useState('');
+
+  useEffect(() => {
+    setUrl(currentUrl || '');
+  }, [currentUrl]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
