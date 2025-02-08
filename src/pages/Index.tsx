@@ -65,8 +65,14 @@ const Index = () => {
     setTabs(updatedTabs);
 
     try {
-      // Open URL in browser
-      await Browser.open({ url: finalUrl });
+      // Open URL in in-app browser
+      await Browser.open({ 
+        url: finalUrl,
+        presentationStyle: 'inline',
+        toolbarColor: '#f8fafc',
+        width: window.innerWidth,
+        height: window.innerHeight
+      });
 
       const activeTab = updatedTabs.find(tab => tab.id === activeTabId);
       if (activeTab && user) {
