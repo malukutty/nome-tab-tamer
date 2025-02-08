@@ -18,6 +18,9 @@ export default defineConfig(({ mode }) => ({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
+      "@capacitor/browser": path.resolve(__dirname, "node_modules/@capacitor/browser"),
+      "@capacitor/app": path.resolve(__dirname, "node_modules/@capacitor/app"),
+      "@capacitor/core": path.resolve(__dirname, "node_modules/@capacitor/core"),
     },
   },
   build: {
