@@ -10,12 +10,15 @@ import { useToast } from '@/hooks/use-toast';
 import { useTabOrganization } from '@/hooks/useTabOrganization';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { Button } from '@/components/ui/button';
 
 const Index = () => {
   const [tabs, setTabs] = useState<TabData[]>([
     { id: '1', title: 'New Tab', url: '' }
   ]);
   const [activeTabId, setActiveTabId] = useState('1');
+  const [summary, setSummary] = useState<string | null>(null);
+  const [summarizing, setSummarizing] = useState(false);
   const { toast } = useToast();
   const { organizeTab } = useTabOrganization();
   const { user } = useAuth();
@@ -60,7 +63,6 @@ const Index = () => {
     if (activeTab && user) {
       const groupId = organizeTab(activeTab);
       if (groupId) {
-        // Save the tab to the group
         try {
           const { error } = await supabase
             .from('saved_tabs')
@@ -94,6 +96,41 @@ const Index = () => {
     });
   };
 
+  const handleSummarizeTabs = async () => {
+    if (tabs.length === 0) {
+      toast({
+        title: "No tabs to summarize",
+        description: "Open some tabs first to get a summary",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setSummarizing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('summarize-tabs', {
+        body: { tabs }
+      });
+
+      if (error) throw error;
+
+      setSummary(data.summary);
+      toast({
+        title: "Tabs summarized",
+        description: "Your open tabs have been summarized successfully",
+      });
+    } catch (error) {
+      console.error('Error summarizing tabs:', error);
+      toast({
+        title: "Error summarizing tabs",
+        description: "Failed to generate summary",
+        variant: "destructive",
+      });
+    } finally {
+      setSummarizing(false);
+    }
+  };
+
   return (
     <div className="flex flex-col h-screen bg-white animate-fade-in">
       <div className="flex flex-col flex-shrink-0">
@@ -125,8 +162,24 @@ const Index = () => {
           </div>
           
           <div>
-            <h2 className="text-xl font-semibold text-nome-800 mb-4">Tab Organization</h2>
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-semibold text-nome-800">Tab Organization</h2>
+              <Button
+                onClick={handleSummarizeTabs}
+                disabled={summarizing}
+                className="ml-4"
+              >
+                {summarizing ? "Summarizing..." : "Summarize Tabs"}
+              </Button>
+            </div>
             <TabOrganizer />
+            
+            {summary && (
+              <div className="mt-6 p-4 bg-nome-50 rounded-lg">
+                <h3 className="text-lg font-semibold text-nome-800 mb-2">Tab Summary</h3>
+                <p className="text-nome-600 whitespace-pre-line">{summary}</p>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -135,4 +188,3 @@ const Index = () => {
 };
 
 export default Index;
-
