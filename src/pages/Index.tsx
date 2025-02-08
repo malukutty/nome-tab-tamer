@@ -16,6 +16,7 @@ const Index = () => {
     tabs,
     setTabs,
     activeTabId,
+    setTabBrowserInstance
   } = useBrowserTabs();
   
   const { toast } = useToast();
@@ -28,6 +29,7 @@ const Index = () => {
   const handleNavigate = async (url: string) => {
     const formattedUrl = url.startsWith('http') ? url : `https://${url}`;
     
+    // Update the tab's URL first
     const updatedTabs = tabs.map(tab => 
       tab.id === activeTabId 
         ? { ...tab, url: formattedUrl, title: formattedUrl } 
@@ -36,12 +38,16 @@ const Index = () => {
     setTabs(updatedTabs);
 
     try {
+      // Close any existing browser instances
+      await Browser.close();
+
       const browserOptions: BrowserOpenOptions = {
         url: formattedUrl,
         presentationStyle: 'popover',
         toolbarColor: '#ffffff',
       };
 
+      // Open new browser instance
       await Browser.open(browserOptions);
 
       const activeTab = updatedTabs.find(tab => tab.id === activeTabId);

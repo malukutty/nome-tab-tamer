@@ -1,9 +1,9 @@
-
 export interface TabData {
   id: string;
   title: string;
   url: string;
   content?: string;
+  browserInstance?: any;
 }
 
 export interface TabGroup {
