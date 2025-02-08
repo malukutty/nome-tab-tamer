@@ -1,4 +1,5 @@
-import { useState } from 'react';
+
+import { useState, useEffect } from 'react';
 import { v4 as uuidv4 } from '@/lib/utils';
 import AddressBar from '@/components/Browser/AddressBar';
 import NavigationControls from '@/components/Browser/NavigationControls';
@@ -10,6 +11,8 @@ import { useTabOrganization } from '@/hooks/useTabOrganization';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { AlertTriangle } from 'lucide-react';
 
 const Index = () => {
   const [tabs, setTabs] = useState<TabData[]>([
@@ -18,6 +21,7 @@ const Index = () => {
   const [activeTabId, setActiveTabId] = useState('1');
   const [summary, setSummary] = useState<string | null>(null);
   const [summarizing, setSummarizing] = useState(false);
+  const [iframeError, setIframeError] = useState(false);
   const { toast } = useToast();
   const { organizeTab } = useTabOrganization();
   const { user } = useAuth();
@@ -50,6 +54,7 @@ const Index = () => {
   };
 
   const handleNavigate = async (url: string) => {
+    setIframeError(false);
     let finalUrl = url;
     if (!url.startsWith('http://') && !url.startsWith('https://')) {
       finalUrl = `https://${url}`;
@@ -136,6 +141,15 @@ const Index = () => {
 
   const activeTab = tabs.find(tab => tab.id === activeTabId);
 
+  const handleIframeError = () => {
+    setIframeError(true);
+    toast({
+      title: "Website cannot be displayed",
+      description: "This website cannot be displayed due to security restrictions",
+      variant: "destructive",
+    });
+  };
+
   return (
     <div className="flex flex-col h-screen bg-white animate-fade-in">
       <div className="flex flex-col flex-shrink-0">
@@ -159,12 +173,26 @@ const Index = () => {
       </div>
       <div className="flex-1 bg-nome-50 overflow-hidden">
         {activeTab?.url ? (
-          <iframe
-            src={activeTab.url}
-            className="w-full h-full border-none"
-            title={activeTab.title}
-            sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
-          />
+          <>
+            <iframe
+              src={activeTab.url}
+              className={`w-full h-full border-none ${iframeError ? 'hidden' : ''}`}
+              title={activeTab.title}
+              sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
+              onError={handleIframeError}
+            />
+            {iframeError && (
+              <div className="p-4">
+                <Alert variant="destructive">
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertDescription>
+                    This website cannot be displayed in Nome due to security restrictions. 
+                    Please try opening it in your regular browser instead.
+                  </AlertDescription>
+                </Alert>
+              </div>
+            )}
+          </>
         ) : (
           <div className="p-4">
             <div className="w-full bg-white rounded-lg shadow-sm p-6 animate-slide-up space-y-6">
