@@ -11,7 +11,6 @@ import { useTabOrganization } from '@/hooks/useTabOrganization';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
-import { Browser } from '@capacitor/browser';
 
 const Index = () => {
   const [tabs, setTabs] = useState<TabData[]>([
@@ -64,53 +63,35 @@ const Index = () => {
     );
     setTabs(updatedTabs);
 
-    try {
-      // Open URL in in-app browser
-      await Browser.open({ 
-        url: finalUrl,
-        presentationStyle: 'popover',
-        toolbarColor: '#f8fafc',
-        width: window.innerWidth,
-        height: window.innerHeight
-      });
+    const activeTab = updatedTabs.find(tab => tab.id === activeTabId);
+    if (activeTab && user) {
+      const groupId = organizeTab(activeTab);
+      if (groupId) {
+        try {
+          const { error } = await supabase
+            .from('saved_tabs')
+            .insert([{
+              title: activeTab.title,
+              url: activeTab.url,
+              group_id: groupId,
+              user_id: user.id
+            }]);
 
-      const activeTab = updatedTabs.find(tab => tab.id === activeTabId);
-      if (activeTab && user) {
-        const groupId = organizeTab(activeTab);
-        if (groupId) {
-          try {
-            const { error } = await supabase
-              .from('saved_tabs')
-              .insert([{
-                title: activeTab.title,
-                url: activeTab.url,
-                group_id: groupId,
-                user_id: user.id
-              }]);
+          if (error) throw error;
 
-            if (error) throw error;
-
-            toast({
-              title: "Tab organized",
-              description: "Tab has been automatically organized into a group",
-            });
-          } catch (error) {
-            console.error('Error saving tab:', error);
-            toast({
-              title: "Error organizing tab",
-              description: "Failed to organize tab into group",
-              variant: "destructive",
-            });
-          }
+          toast({
+            title: "Tab organized",
+            description: "Tab has been automatically organized into a group",
+          });
+        } catch (error) {
+          console.error('Error saving tab:', error);
+          toast({
+            title: "Error organizing tab",
+            description: "Failed to organize tab into group",
+            variant: "destructive",
+          });
         }
       }
-    } catch (error) {
-      console.error('Error opening URL:', error);
-      toast({
-        title: "Error opening URL",
-        description: "Failed to open the URL in browser",
-        variant: "destructive",
-      });
     }
   };
 
@@ -163,10 +144,10 @@ const Index = () => {
         />
         <div className="flex items-center h-12 border-b border-nome-200">
           <NavigationControls
-            onBack={() => Browser.close()}
+            onBack={() => {}}
             onForward={() => {}}
             onRefresh={() => {}}
-            canGoBack={true}
+            canGoBack={false}
             canGoForward={false}
           />
           <AddressBar onNavigate={handleNavigate} />
@@ -206,14 +187,12 @@ const Index = () => {
             </div>
           </div>
         ) : (
-          <div className="p-4">
-            <div className="w-full bg-white rounded-lg shadow-sm p-6">
-              <h2 className="text-xl font-semibold text-nome-800 mb-4">Tab Information</h2>
-              <p className="text-nome-600">
-                Current URL: <a href={activeTab.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">{activeTab.url}</a>
-              </p>
-            </div>
-          </div>
+          <iframe
+            src={activeTab.url}
+            className="w-full h-full border-none"
+            sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
+            title={activeTab.title}
+          />
         )}
       </div>
     </div>
