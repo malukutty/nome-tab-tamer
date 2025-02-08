@@ -4,8 +4,10 @@ import { v4 as uuidv4 } from '@/lib/utils';
 import AddressBar from '@/components/Browser/AddressBar';
 import NavigationControls from '@/components/Browser/NavigationControls';
 import TabBar from '@/components/Browser/TabBar';
+import TabOrganizer from '@/components/Browser/TabOrganizer';
 import { TabData } from '@/types/browser';
 import { useToast } from '@/hooks/use-toast';
+import { useTabOrganization } from '@/hooks/useTabOrganization';
 
 const Index = () => {
   const [tabs, setTabs] = useState<TabData[]>([
@@ -13,6 +15,7 @@ const Index = () => {
   ]);
   const [activeTabId, setActiveTabId] = useState('1');
   const { toast } = useToast();
+  const { organizeTab } = useTabOrganization();
 
   const handleNewTab = () => {
     const newTab = {
@@ -42,16 +45,53 @@ const Index = () => {
   };
 
   const handleNavigate = (url: string) => {
-    setTabs(tabs.map(tab => 
+    const updatedTabs = tabs.map(tab => 
       tab.id === activeTabId 
         ? { ...tab, url, title: url } 
         : tab
-    ));
+    );
+    setTabs(updatedTabs);
+
+    // Automatically organize the tab
+    const activeTab = updatedTabs.find(tab => tab.id === activeTabId);
+    if (activeTab) {
+      const groupId = organizeTab(activeTab);
+      if (groupId) {
+        // Save the tab to the group
+        saveTabToGroup(activeTab, groupId);
+      }
+    }
     
     toast({
       title: "Navigation started",
       description: "Loading new page...",
     });
+  };
+
+  const saveTabToGroup = async (tab: TabData, groupId: string) => {
+    try {
+      const { error } = await supabase
+        .from('saved_tabs')
+        .insert([{
+          title: tab.title,
+          url: tab.url,
+          group_id: groupId
+        }]);
+
+      if (error) throw error;
+
+      toast({
+        title: "Tab organized",
+        description: "Tab has been automatically organized into a group",
+      });
+    } catch (error) {
+      console.error('Error saving tab:', error);
+      toast({
+        title: "Error organizing tab",
+        description: "Failed to organize tab into group",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -75,12 +115,19 @@ const Index = () => {
           <AddressBar onNavigate={handleNavigate} />
         </div>
       </div>
-      <div className="flex-1 bg-nome-50 p-4">
-        <div className="w-full h-full bg-white rounded-lg shadow-sm p-6 animate-slide-up">
-          <h1 className="text-2xl font-semibold text-nome-800 mb-4">Welcome to Nome</h1>
-          <p className="text-nome-600">
-            Your intelligent browser for organized browsing. Start by entering a URL in the address bar above.
-          </p>
+      <div className="flex-1 bg-nome-50 p-4 overflow-y-auto">
+        <div className="w-full bg-white rounded-lg shadow-sm p-6 animate-slide-up space-y-6">
+          <div>
+            <h1 className="text-2xl font-semibold text-nome-800 mb-4">Welcome to Nome</h1>
+            <p className="text-nome-600 mb-6">
+              Your intelligent browser for organized browsing. Start by entering a URL in the address bar above.
+            </p>
+          </div>
+          
+          <div>
+            <h2 className="text-xl font-semibold text-nome-800 mb-4">Tab Organization</h2>
+            <TabOrganizer />
+          </div>
         </div>
       </div>
     </div>
