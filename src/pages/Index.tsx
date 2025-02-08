@@ -39,11 +39,16 @@ const Index = () => {
       );
       setTabs(updatedTabs);
 
+      // Close any existing browser windows
+      await Browser.close();
+
       // Open the URL in an in-app browser
       await Browser.open({
         url: formattedUrl,
         presentationStyle: 'fullscreen',
-        toolbarColor: '#f8f9fa'
+        toolbarColor: '#f8f9fa',
+        width: window.innerWidth,
+        height: window.innerHeight
       });
 
       // Save tab if user is logged in
@@ -91,6 +96,9 @@ const Index = () => {
     if (!user) return;
 
     try {
+      // Close any existing browser windows
+      await Browser.close();
+
       // Update active tab in state
       setActiveTabId(tabId);
       
@@ -116,7 +124,9 @@ const Index = () => {
         await Browser.open({
           url: activeTab.url,
           presentationStyle: 'fullscreen',
-          toolbarColor: '#f8f9fa'
+          toolbarColor: '#f8f9fa',
+          width: window.innerWidth,
+          height: window.innerHeight
         });
       }
     } catch (error) {
