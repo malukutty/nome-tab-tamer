@@ -39,16 +39,8 @@ const Index = () => {
       );
       setTabs(updatedTabs);
 
-      // Create or update WebView for this tab
-      const webview = document.createElement('capacitor-web-view');
-      webview.setAttribute('src', formattedUrl);
-      webview.style.display = 'none'; // Initially hidden
-      document.body.appendChild(webview);
-
-      // Show the WebView for active tab
-      if (tabId === activeTabId) {
-        webview.style.display = 'block';
-      }
+      // Open the URL in the system browser for now
+      await WebView.open({ url: formattedUrl });
 
       // Save tab if user is logged in
       const activeTab = updatedTabs.find(tab => tab.id === tabId);
@@ -95,23 +87,9 @@ const Index = () => {
     if (!user) return;
 
     try {
-      // Hide all WebViews
-      const webviews = document.querySelectorAll('capacitor-web-view');
-      webviews.forEach(webview => {
-        (webview as HTMLElement).style.display = 'none';
-      });
-
-      // Show the selected tab's WebView
-      const targetTab = tabs.find(tab => tab.id === tabId);
-      if (targetTab?.url) {
-        const webview = Array.from(webviews).find(w => 
-          w.getAttribute('src') === targetTab.url
-        );
-        if (webview) {
-          (webview as HTMLElement).style.display = 'block';
-        }
-      }
-
+      // Update active tab in state
+      setActiveTabId(tabId);
+      
       // Update active state in database
       const { error: updateError } = await supabase
         .from('tab_states')
@@ -128,7 +106,11 @@ const Index = () => {
 
       if (activeError) throw activeError;
 
-      setActiveTabId(tabId);
+      // Get the active tab's URL and open it
+      const activeTab = tabs.find(tab => tab.id === tabId);
+      if (activeTab?.url) {
+        await WebView.open({ url: activeTab.url });
+      }
     } catch (error) {
       console.error('Error switching tabs:', error);
       toast({
