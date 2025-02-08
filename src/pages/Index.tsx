@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Browser, BrowserOpenOptions } from '@capacitor/browser';
 import { useToast } from '@/hooks/use-toast';
@@ -64,25 +65,32 @@ const Index = () => {
   ];
 
   useEffect(() => {
-    const browserFinishedListener = Browser.addListener('browserFinished', () => {
-      console.log('Browser finished');
-      toast({
-        title: "Browser closed",
-        description: "The browser window has been closed",
-      });
-    });
+    let browserFinishedListener: any;
+    let browserPageLoadedListener: any;
 
-    const browserPageLoadedListener = Browser.addListener('browserPageLoaded', () => {
-      console.log('Browser page loaded');
-      toast({
-        title: "Page loaded",
-        description: "The web page has finished loading",
+    const setupListeners = async () => {
+      browserFinishedListener = await Browser.addListener('browserFinished', () => {
+        console.log('Browser finished');
+        toast({
+          title: "Browser closed",
+          description: "The browser window has been closed",
+        });
       });
-    });
+
+      browserPageLoadedListener = await Browser.addListener('browserPageLoaded', () => {
+        console.log('Browser page loaded');
+        toast({
+          title: "Page loaded",
+          description: "The web page has finished loading",
+        });
+      });
+    };
+
+    setupListeners();
 
     return () => {
-      browserFinishedListener.remove();
-      browserPageLoadedListener.remove();
+      browserFinishedListener?.remove();
+      browserPageLoadedListener?.remove();
     };
   }, [toast]);
 
@@ -198,3 +206,4 @@ const Index = () => {
 };
 
 export default Index;
+
