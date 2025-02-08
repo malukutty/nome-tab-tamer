@@ -1,6 +1,5 @@
-
-import { useState } from 'react';
-import { Browser } from '@capacitor/browser';
+import { useState, useEffect } from 'react';
+import { Browser, BrowserOpenOptions } from '@capacitor/browser';
 import { useToast } from '@/hooks/use-toast';
 import { useTabOrganization } from '@/hooks/useTabOrganization';
 import { useAuth } from '@/hooks/useAuth';
@@ -64,6 +63,29 @@ const Index = () => {
     }
   ];
 
+  useEffect(() => {
+    const browserFinishedListener = Browser.addListener('browserFinished', () => {
+      console.log('Browser finished');
+      toast({
+        title: "Browser closed",
+        description: "The browser window has been closed",
+      });
+    });
+
+    const browserPageLoadedListener = Browser.addListener('browserPageLoaded', () => {
+      console.log('Browser page loaded');
+      toast({
+        title: "Page loaded",
+        description: "The web page has finished loading",
+      });
+    });
+
+    return () => {
+      browserFinishedListener.remove();
+      browserPageLoadedListener.remove();
+    };
+  }, [toast]);
+
   const handleNavigate = async (url: string) => {
     const formattedUrl = url.startsWith('http') ? url : `https://${url}`;
     
@@ -75,11 +97,13 @@ const Index = () => {
     setTabs(updatedTabs);
 
     try {
-      await Browser.open({
+      const browserOptions: BrowserOpenOptions = {
         url: formattedUrl,
         presentationStyle: 'popover',
         toolbarColor: '#ffffff',
-      });
+      };
+
+      await Browser.open(browserOptions);
 
       const activeTab = updatedTabs.find(tab => tab.id === activeTabId);
       if (activeTab && user) {
@@ -111,11 +135,6 @@ const Index = () => {
           }
         }
       }
-      
-      toast({
-        title: "Navigation started",
-        description: "Loading page in WebView...",
-      });
     } catch (error) {
       console.error('Error opening WebView:', error);
       toast({
