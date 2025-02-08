@@ -1,5 +1,4 @@
 
-import { useState, useEffect } from 'react';
 import { Browser, BrowserOpenOptions } from '@capacitor/browser';
 import { useToast } from '@/hooks/use-toast';
 import { useTabOrganization } from '@/hooks/useTabOrganization';
@@ -8,16 +7,9 @@ import { supabase } from '@/integrations/supabase/client';
 import BrowserTabs, { useBrowserTabs } from '@/components/Browser/BrowserTabs';
 import BrowserControls from '@/components/Browser/BrowserControls';
 import TabOrganizer from '@/components/Browser/TabOrganizer';
-import TabSummary from '@/components/Browser/TabSummary';
-import { Card, CardContent } from '@/components/ui/card';
-import { 
-  Newspaper, 
-  ShoppingCart, 
-  Computer, 
-  CreditCard,
-  Share2
-} from 'lucide-react';
-import { useIsMobile } from '@/hooks/use-mobile';
+import Categories from '@/components/Browser/Categories';
+import WelcomeSection from '@/components/Browser/WelcomeSection';
+import { useBrowserEvents } from '@/hooks/useBrowserEvents';
 
 const Index = () => {
   const {
@@ -29,70 +21,9 @@ const Index = () => {
   const { toast } = useToast();
   const { organizeTab } = useTabOrganization();
   const { user } = useAuth();
-  const isMobile = useIsMobile();
 
-  const categories = [
-    {
-      name: 'Banking & Finance',
-      icon: CreditCard,
-      description: 'Track your finances and banking activities',
-      color: 'bg-blue-500'
-    },
-    {
-      name: 'News & Media',
-      icon: Newspaper,
-      description: 'Stay updated with the latest news',
-      color: 'bg-amber-500'
-    },
-    {
-      name: 'Shopping',
-      icon: ShoppingCart,
-      description: 'Organize your shopping tabs',
-      color: 'bg-green-500'
-    },
-    {
-      name: 'Technology',
-      icon: Computer,
-      description: 'Keep track of tech-related content',
-      color: 'bg-purple-500'
-    },
-    {
-      name: 'Social Media',
-      icon: Share2,
-      description: 'Manage your social media tabs',
-      color: 'bg-pink-500'
-    }
-  ];
-
-  useEffect(() => {
-    let browserFinishedListener: any;
-    let browserPageLoadedListener: any;
-
-    const setupListeners = async () => {
-      browserFinishedListener = await Browser.addListener('browserFinished', () => {
-        console.log('Browser finished');
-        toast({
-          title: "Browser closed",
-          description: "The browser window has been closed",
-        });
-      });
-
-      browserPageLoadedListener = await Browser.addListener('browserPageLoaded', () => {
-        console.log('Browser page loaded');
-        toast({
-          title: "Page loaded",
-          description: "The web page has finished loading",
-        });
-      });
-    };
-
-    setupListeners();
-
-    return () => {
-      browserFinishedListener?.remove();
-      browserPageLoadedListener?.remove();
-    };
-  }, [toast]);
+  // Set up browser event listeners
+  useBrowserEvents();
 
   const handleNavigate = async (url: string) => {
     const formattedUrl = url.startsWith('http') ? url : `https://${url}`;
@@ -166,38 +97,8 @@ const Index = () => {
       </div>
       <div className="flex-1 bg-nome-50 p-4 overflow-y-auto">
         <div className="w-full bg-white rounded-lg shadow-sm p-6 animate-slide-up space-y-6">
-          <div>
-            <h1 className="text-2xl font-semibold text-nome-800 mb-2">Welcome to Nome</h1>
-            <p className="text-nome-600">
-              Your intelligent browser for organized browsing. Start by entering a URL in the address bar above.
-            </p>
-          </div>
-          
-          <div>
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-semibold text-nome-800">Categories</h2>
-              <TabSummary tabs={tabs} />
-            </div>
-            
-            <div className={`grid ${isMobile ? 'grid-cols-1' : 'grid-cols-2 lg:grid-cols-3'} gap-4`}>
-              {categories.map((category) => (
-                <Card key={category.name} className="group hover:shadow-md transition-shadow">
-                  <CardContent className="p-6">
-                    <div className="flex items-start space-x-4">
-                      <div className={`p-3 rounded-lg ${category.color} text-white group-hover:scale-110 transition-transform`}>
-                        <category.icon size={24} />
-                      </div>
-                      <div>
-                        <h3 className="font-semibold text-nome-800">{category.name}</h3>
-                        <p className="text-nome-600 text-sm mt-1">{category.description}</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </div>
-
+          <WelcomeSection />
+          <Categories tabs={tabs} />
           <TabOrganizer />
         </div>
       </div>
@@ -206,4 +107,3 @@ const Index = () => {
 };
 
 export default Index;
-
