@@ -12,7 +12,7 @@ const BrowserControls = ({ onNavigate, activeTabUrl }: BrowserControlsProps) => 
   return (
     <div className="flex items-center h-12 border-b border-nome-200">
       <NavigationControls
-        onBack={() => Browser.close({ appId: "app.lovable.nometabtamer" })}
+        onBack={() => Browser.close()}
         onForward={() => {}}
         onRefresh={() => {
           if (activeTabUrl) {
