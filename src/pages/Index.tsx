@@ -10,7 +10,7 @@ import Categories from '@/components/Browser/Categories';
 import WelcomeSection from '@/components/Browser/WelcomeSection';
 import { useBrowserEvents } from '@/hooks/useBrowserEvents';
 import Navbar from '@/components/Layout/Navbar';
-import { WebView } from '@capacitor/core';
+import { Browser } from '@capacitor/browser';
 
 const Index = () => {
   const {
@@ -39,8 +39,8 @@ const Index = () => {
       );
       setTabs(updatedTabs);
 
-      // Open the URL in the system browser for now
-      await WebView.open({ url: formattedUrl });
+      // Open the URL in the system browser
+      await Browser.open({ url: formattedUrl });
 
       // Save tab if user is logged in
       const activeTab = updatedTabs.find(tab => tab.id === tabId);
@@ -109,7 +109,7 @@ const Index = () => {
       // Get the active tab's URL and open it
       const activeTab = tabs.find(tab => tab.id === tabId);
       if (activeTab?.url) {
-        await WebView.open({ url: activeTab.url });
+        await Browser.open({ url: activeTab.url });
       }
     } catch (error) {
       console.error('Error switching tabs:', error);
@@ -147,3 +147,4 @@ const Index = () => {
 };
 
 export default Index;
+
