@@ -16,10 +16,13 @@ const Tab = ({ title, active, onClose, onClick }: TabProps) => {
       className={`
         group flex items-center gap-2 px-4 py-2 max-w-[200px] cursor-pointer
         border-r border-nome-200 transition-colors animate-fade-in
-        ${active ? 'bg-white' : 'bg-nome-50 hover:bg-nome-100'}
+        ${active 
+          ? 'bg-white border-b-2 border-b-nome-600 text-nome-900' 
+          : 'bg-nome-50 hover:bg-nome-100 text-nome-600'
+        }
       `}
     >
-      <span className="truncate text-sm text-nome-700">{title}</span>
+      <span className="truncate text-sm">{title}</span>
       <Button
         variant="ghost"
         size="icon"
@@ -29,10 +32,11 @@ const Tab = ({ title, active, onClose, onClick }: TabProps) => {
           onClose();
         }}
       >
-        <X className="h-3 w-3 text-nome-400 hover:text-nome-600" />
+        <X className={`h-3 w-3 ${active ? 'text-nome-600' : 'text-nome-400'} hover:text-nome-900`} />
       </Button>
     </div>
   );
 };
 
 export default Tab;
+
