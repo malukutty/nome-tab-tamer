@@ -6,7 +6,6 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import BrowserTabs, { useBrowserTabs } from '@/components/Browser/BrowserTabs';
 import BrowserControls from '@/components/Browser/BrowserControls';
-import TabOrganizer from '@/components/Browser/TabOrganizer';
 import Categories from '@/components/Browser/Categories';
 import WelcomeSection from '@/components/Browser/WelcomeSection';
 import { useBrowserEvents } from '@/hooks/useBrowserEvents';
@@ -101,7 +100,6 @@ const Index = () => {
         <div className="w-full bg-white rounded-lg shadow-sm p-6 animate-slide-up space-y-6">
           <WelcomeSection />
           <Categories tabs={tabs} />
-          <TabOrganizer />
         </div>
       </div>
     </div>

@@ -9,7 +9,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/hooks/useAuth";
-import { UserCircle } from "lucide-react";
+import { Settings, UserCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 const UserMenu = () => {
@@ -39,6 +39,13 @@ const UserMenu = () => {
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
+        <DropdownMenuItem
+          onClick={() => navigate("/settings")}
+          className="cursor-pointer"
+        >
+          <Settings className="h-4 w-4 mr-2" />
+          Settings
+        </DropdownMenuItem>
         <DropdownMenuItem
           onClick={handleSignOut}
           className="text-red-600 cursor-pointer"
