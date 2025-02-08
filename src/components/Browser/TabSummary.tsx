@@ -5,7 +5,13 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { TabData } from '@/types/browser';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Loader2 } from 'lucide-react';
+import { Loader2, XIcon } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 interface TabSummaryProps {
   tabs: TabData[];
@@ -14,6 +20,7 @@ interface TabSummaryProps {
 const TabSummary = ({ tabs }: TabSummaryProps) => {
   const [summary, setSummary] = useState<string | null>(null);
   const [summarizing, setSummarizing] = useState(false);
+  const [showDialog, setShowDialog] = useState(false);
   const { toast } = useToast();
 
   const handleSummarizeTabs = async () => {
@@ -35,6 +42,7 @@ const TabSummary = ({ tabs }: TabSummaryProps) => {
       if (error) throw error;
 
       setSummary(data.summary);
+      setShowDialog(true);
       toast({
         title: "Analysis complete",
         description: "Your tabs have been analyzed and organized",
@@ -51,8 +59,23 @@ const TabSummary = ({ tabs }: TabSummaryProps) => {
     }
   };
 
+  const formatSummary = (text: string) => {
+    // Convert markdown-style bullets to proper formatting
+    return text.split('\n').map((line, index) => {
+      const trimmedLine = line.trim();
+      if (trimmedLine.startsWith('*')) {
+        return (
+          <li key={index} className="ml-4 mb-2">
+            {trimmedLine.substring(1).trim()}
+          </li>
+        );
+      }
+      return <p key={index} className="mb-2">{trimmedLine}</p>;
+    });
+  };
+
   return (
-    <div className="space-y-4">
+    <div>
       <Button
         onClick={handleSummarizeTabs}
         disabled={summarizing}
@@ -67,27 +90,38 @@ const TabSummary = ({ tabs }: TabSummaryProps) => {
           "Analyze & Organize Tabs"
         )}
       </Button>
-      
-      {summary && (
-        <div className="mt-6 bg-white rounded-lg border border-nome-200 shadow-sm">
-          <div className="p-4 border-b border-nome-200">
-            <h3 className="text-lg font-semibold text-nome-800">Tab Analysis</h3>
-            <p className="text-sm text-nome-600">
-              Here's an analysis of your current browsing context and organization suggestions
-            </p>
-          </div>
-          <ScrollArea className="h-[300px]">
-            <div className="p-4">
-              <div className="prose prose-nome max-w-none">
-                <div className="whitespace-pre-line text-nome-600">{summary}</div>
-              </div>
+
+      <Dialog open={showDialog} onOpenChange={setShowDialog}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-semibold flex items-center justify-between">
+              Tab Analysis Summary
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setShowDialog(false)}
+                className="h-6 w-6 p-0"
+              >
+                <XIcon className="h-4 w-4" />
+              </Button>
+            </DialogTitle>
+          </DialogHeader>
+
+          <ScrollArea className="max-h-[60vh] mt-4">
+            <div className="px-2">
+              {summary && (
+                <div className="prose prose-nome">
+                  <ul className="list-none space-y-2 text-nome-600">
+                    {formatSummary(summary)}
+                  </ul>
+                </div>
+              )}
             </div>
           </ScrollArea>
-        </div>
-      )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
 
 export default TabSummary;
-
