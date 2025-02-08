@@ -47,28 +47,29 @@ const TabOrganizer = () => {
   }
 
   return (
-    <div className="grid gap-4 md:grid-cols-2">
+    <div className="grid gap-4 grid-cols-1 md:grid-cols-2 p-4">
       {/* Groups Management */}
-      <Card>
+      <Card className="w-full">
         <CardHeader>
-          <CardTitle>Tab Groups</CardTitle>
+          <CardTitle className="text-xl md:text-2xl">Tab Groups</CardTitle>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleCreateGroup} className="flex gap-2 mb-4">
+          <form onSubmit={handleCreateGroup} className="flex flex-col sm:flex-row gap-2 mb-4">
             <Input
               placeholder="New group name"
               value={newGroupName}
               onChange={(e) => setNewGroupName(e.target.value)}
+              className="flex-1"
             />
-            <Button type="submit" disabled={createGroup.isPending}>
+            <Button type="submit" disabled={createGroup.isPending} className="whitespace-nowrap">
               <Plus className="w-4 h-4 mr-1" />
-              Add
+              Add Group
             </Button>
           </form>
           <div className="space-y-2">
             {groups.map((group) => (
               <div key={group.id} className="flex items-center justify-between p-2 bg-muted rounded">
-                <span>{group.name}</span>
+                <span className="text-sm md:text-base line-clamp-1">{group.name}</span>
                 <Button
                   variant="ghost"
                   size="icon"
@@ -84,14 +85,14 @@ const TabOrganizer = () => {
       </Card>
 
       {/* Rules Management */}
-      <Card>
+      <Card className="w-full">
         <CardHeader>
-          <CardTitle>Organization Rules</CardTitle>
+          <CardTitle className="text-xl md:text-2xl">Organization Rules</CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleCreateRule} className="space-y-4 mb-4">
             <select
-              className="w-full p-2 border rounded"
+              className="w-full p-2 border rounded bg-background"
               value={selectedGroupId}
               onChange={(e) => setSelectedGroupId(e.target.value)}
             >
@@ -102,15 +103,16 @@ const TabOrganizer = () => {
                 </option>
               ))}
             </select>
-            <div className="flex gap-2">
+            <div className="flex flex-col sm:flex-row gap-2">
               <Input
                 placeholder="URL pattern (e.g., .*github\.com.*)"
                 value={newRulePattern}
                 onChange={(e) => setNewRulePattern(e.target.value)}
+                className="flex-1"
               />
-              <Button type="submit" disabled={createRule.isPending || !selectedGroupId}>
+              <Button type="submit" disabled={createRule.isPending || !selectedGroupId} className="whitespace-nowrap">
                 <Plus className="w-4 h-4 mr-1" />
-                Add
+                Add Rule
               </Button>
             </div>
           </form>
@@ -119,15 +121,16 @@ const TabOrganizer = () => {
               const group = groups.find(g => g.id === rule.group_id);
               return (
                 <div key={rule.id} className="flex items-center justify-between p-2 bg-muted rounded">
-                  <div className="flex flex-col">
-                    <span className="text-sm font-medium">{group?.name}</span>
-                    <span className="text-xs text-muted-foreground">{rule.pattern}</span>
+                  <div className="flex flex-col flex-1 min-w-0 mr-2">
+                    <span className="text-sm font-medium line-clamp-1">{group?.name}</span>
+                    <span className="text-xs text-muted-foreground line-clamp-1">{rule.pattern}</span>
                   </div>
                   <Button
                     variant="ghost"
                     size="icon"
                     onClick={() => deleteRule.mutate(rule.id)}
                     disabled={deleteRule.isPending}
+                    className="shrink-0"
                   >
                     <Trash2 className="w-4 h-4" />
                   </Button>
@@ -142,4 +145,3 @@ const TabOrganizer = () => {
 };
 
 export default TabOrganizer;
-
