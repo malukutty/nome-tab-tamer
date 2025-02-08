@@ -68,7 +68,7 @@ const Index = () => {
       // Open URL in in-app browser
       await Browser.open({ 
         url: finalUrl,
-        presentationStyle: 'inline',
+        presentationStyle: 'popover',
         toolbarColor: '#f8fafc',
         width: window.innerWidth,
         height: window.innerHeight
