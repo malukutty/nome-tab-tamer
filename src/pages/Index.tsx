@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { v4 as uuidv4 } from '@/lib/utils';
 import AddressBar from '@/components/Browser/AddressBar';
@@ -51,14 +50,18 @@ const Index = () => {
   };
 
   const handleNavigate = async (url: string) => {
+    let finalUrl = url;
+    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+      finalUrl = `https://${url}`;
+    }
+
     const updatedTabs = tabs.map(tab => 
       tab.id === activeTabId 
-        ? { ...tab, url, title: url } 
+        ? { ...tab, url: finalUrl, title: url } 
         : tab
     );
     setTabs(updatedTabs);
 
-    // Automatically organize the tab
     const activeTab = updatedTabs.find(tab => tab.id === activeTabId);
     if (activeTab && user) {
       const groupId = organizeTab(activeTab);
@@ -131,6 +134,8 @@ const Index = () => {
     }
   };
 
+  const activeTab = tabs.find(tab => tab.id === activeTabId);
+
   return (
     <div className="flex flex-col h-screen bg-white animate-fade-in">
       <div className="flex flex-col flex-shrink-0">
@@ -152,36 +157,47 @@ const Index = () => {
           <AddressBar onNavigate={handleNavigate} />
         </div>
       </div>
-      <div className="flex-1 bg-nome-50 p-4 overflow-y-auto">
-        <div className="w-full bg-white rounded-lg shadow-sm p-6 animate-slide-up space-y-6">
-          <div>
-            <h1 className="text-2xl font-semibold text-nome-800 mb-4">Welcome to Nome</h1>
-            <p className="text-nome-600 mb-6">
-              Your intelligent browser for organized browsing. Start by entering a URL in the address bar above.
-            </p>
-          </div>
-          
-          <div>
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-semibold text-nome-800">Tab Organization</h2>
-              <Button
-                onClick={handleSummarizeTabs}
-                disabled={summarizing}
-                className="ml-4"
-              >
-                {summarizing ? "Summarizing..." : "Summarize Tabs"}
-              </Button>
-            </div>
-            <TabOrganizer />
-            
-            {summary && (
-              <div className="mt-6 p-4 bg-nome-50 rounded-lg">
-                <h3 className="text-lg font-semibold text-nome-800 mb-2">Tab Summary</h3>
-                <p className="text-nome-600 whitespace-pre-line">{summary}</p>
+      <div className="flex-1 bg-nome-50 overflow-hidden">
+        {activeTab?.url ? (
+          <iframe
+            src={activeTab.url}
+            className="w-full h-full border-none"
+            title={activeTab.title}
+            sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
+          />
+        ) : (
+          <div className="p-4">
+            <div className="w-full bg-white rounded-lg shadow-sm p-6 animate-slide-up space-y-6">
+              <div>
+                <h1 className="text-2xl font-semibold text-nome-800 mb-4">Welcome to Nome</h1>
+                <p className="text-nome-600 mb-6">
+                  Your intelligent browser for organized browsing. Start by entering a URL in the address bar above.
+                </p>
               </div>
-            )}
+              
+              <div>
+                <div className="flex justify-between items-center mb-4">
+                  <h2 className="text-xl font-semibold text-nome-800">Tab Organization</h2>
+                  <Button
+                    onClick={handleSummarizeTabs}
+                    disabled={summarizing}
+                    className="ml-4"
+                  >
+                    {summarizing ? "Summarizing..." : "Summarize Tabs"}
+                  </Button>
+                </div>
+                <TabOrganizer />
+                
+                {summary && (
+                  <div className="mt-6 p-4 bg-nome-50 rounded-lg">
+                    <h3 className="text-lg font-semibold text-nome-800 mb-2">Tab Summary</h3>
+                    <p className="text-nome-600 whitespace-pre-line">{summary}</p>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );
