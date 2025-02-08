@@ -8,7 +8,7 @@ import {
   Share2,
   ExternalLink,
   Trash2,
-  Folder
+  Folder,
 } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import TabSummary from './TabSummary';
@@ -18,6 +18,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
+import { LucideIcon } from 'lucide-react';
 
 interface CategoriesProps {
   tabs: TabData[];
@@ -26,7 +27,7 @@ interface CategoriesProps {
 interface Category {
   id: string;
   name: string;
-  icon?: JSX.Element;
+  icon: LucideIcon;
   description?: string;
   color?: string;
 }
@@ -53,7 +54,7 @@ const Categories = ({ tabs }: CategoriesProps) => {
 
       // Map database categories to UI format with default icons and colors
       return data.map((group): Category => {
-        const defaultIcons: Record<string, any> = {
+        const defaultIcons: Record<string, { icon: LucideIcon, color: string }> = {
           'Banking & Finance': { icon: CreditCard, color: 'bg-blue-500' },
           'News & Media': { icon: Share2, color: 'bg-amber-500' },
           'Shopping': { icon: Share2, color: 'bg-green-500' },
@@ -135,25 +136,28 @@ const Categories = ({ tabs }: CategoriesProps) => {
       </div>
       
       <div className={`grid ${isMobile ? 'grid-cols-1' : 'grid-cols-2 lg:grid-cols-3'} gap-4`}>
-        {categories.map((category) => (
-          <Card 
-            key={category.id} 
-            className="group hover:shadow-md transition-shadow cursor-pointer"
-            onClick={() => setSelectedCategory(category.id)}
-          >
-            <CardContent className="p-6">
-              <div className="flex items-start space-x-4">
-                <div className={`p-3 rounded-lg ${category.color} text-white group-hover:scale-110 transition-transform`}>
-                  <category.icon size={24} />
+        {categories.map((category) => {
+          const IconComponent = category.icon;
+          return (
+            <Card 
+              key={category.id} 
+              className="group hover:shadow-md transition-shadow cursor-pointer"
+              onClick={() => setSelectedCategory(category.id)}
+            >
+              <CardContent className="p-6">
+                <div className="flex items-start space-x-4">
+                  <div className={`p-3 rounded-lg ${category.color} text-white group-hover:scale-110 transition-transform`}>
+                    <IconComponent size={24} />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-nome-800">{category.name}</h3>
+                    <p className="text-nome-600 text-sm mt-1">{category.description}</p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="font-semibold text-nome-800">{category.name}</h3>
-                  <p className="text-nome-600 text-sm mt-1">{category.description}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+              </CardContent>
+            </Card>
+          );
+        })}
       </div>
 
       <Dialog open={!!selectedCategory} onOpenChange={() => setSelectedCategory(null)}>
