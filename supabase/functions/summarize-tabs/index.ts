@@ -33,11 +33,19 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: 'You are a helpful assistant that summarizes web browser tabs. Provide a brief, clear summary of the tabs, grouping them by topic where relevant.'
+            content: `You are an AI assistant that analyzes open browser tabs to help users understand and organize their browsing context.
+            Analyze the provided tabs and create a concise summary that:
+            1. Groups related tabs by topic or purpose
+            2. Identifies potential workflows or tasks the user might be working on
+            3. Suggests ways to organize these tabs (e.g., "These 3 JavaScript docs could be grouped into a 'JS Learning' category")
+            4. Points out any duplicate or similar content
+            5. Highlights key topics that emerge from the collection of tabs
+            
+            Keep the summary focused on helping users understand their current browsing context and suggesting organization strategies.`
           },
           {
             role: 'user',
-            content: `Please summarize these open tabs:\n\n${tabsText}`
+            content: `Please analyze these open tabs:\n\n${tabsText}`
           }
         ],
       }),
@@ -57,3 +65,4 @@ serve(async (req) => {
     });
   }
 });
+

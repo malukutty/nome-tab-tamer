@@ -4,6 +4,8 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { TabData } from '@/types/browser';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Loader2 } from 'lucide-react';
 
 interface TabSummaryProps {
   tabs: TabData[];
@@ -34,14 +36,14 @@ const TabSummary = ({ tabs }: TabSummaryProps) => {
 
       setSummary(data.summary);
       toast({
-        title: "Tabs summarized",
-        description: "Your open tabs have been summarized successfully",
+        title: "Analysis complete",
+        description: "Your tabs have been analyzed and organized",
       });
     } catch (error) {
       console.error('Error summarizing tabs:', error);
       toast({
-        title: "Error summarizing tabs",
-        description: "Failed to generate summary",
+        title: "Error analyzing tabs",
+        description: "Failed to generate analysis",
         variant: "destructive",
       });
     } finally {
@@ -50,23 +52,42 @@ const TabSummary = ({ tabs }: TabSummaryProps) => {
   };
 
   return (
-    <>
+    <div className="space-y-4">
       <Button
         onClick={handleSummarizeTabs}
         disabled={summarizing}
-        className="ml-4"
+        className="w-full sm:w-auto"
       >
-        {summarizing ? "Summarizing..." : "Summarize Tabs"}
+        {summarizing ? (
+          <>
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            Analyzing tabs...
+          </>
+        ) : (
+          "Analyze & Organize Tabs"
+        )}
       </Button>
       
       {summary && (
-        <div className="mt-6 p-4 bg-nome-50 rounded-lg">
-          <h3 className="text-lg font-semibold text-nome-800 mb-2">Tab Summary</h3>
-          <p className="text-nome-600 whitespace-pre-line">{summary}</p>
+        <div className="mt-6 bg-white rounded-lg border border-nome-200 shadow-sm">
+          <div className="p-4 border-b border-nome-200">
+            <h3 className="text-lg font-semibold text-nome-800">Tab Analysis</h3>
+            <p className="text-sm text-nome-600">
+              Here's an analysis of your current browsing context and organization suggestions
+            </p>
+          </div>
+          <ScrollArea className="h-[300px]">
+            <div className="p-4">
+              <div className="prose prose-nome max-w-none">
+                <div className="whitespace-pre-line text-nome-600">{summary}</div>
+              </div>
+            </div>
+          </ScrollArea>
         </div>
       )}
-    </>
+    </div>
   );
 };
 
 export default TabSummary;
+
