@@ -27,6 +27,19 @@ const Index = () => {
   // Set up browser event listeners
   useBrowserEvents();
 
+  useEffect(() => {
+    // Set up browser finished event listener
+    Browser.addListener('browserFinished', () => {
+      // Handle browser closure
+      console.log('Browser finished event received');
+    });
+
+    return () => {
+      // Cleanup listeners when component unmounts
+      Browser.removeAllListeners();
+    };
+  }, []);
+
   const handleNavigate = async (url: string, tabId: string) => {
     const formattedUrl = url.startsWith('http') ? url : `https://${url}`;
     
@@ -39,8 +52,12 @@ const Index = () => {
       );
       setTabs(updatedTabs);
 
-      // Open the URL in the system browser
-      await Browser.open({ url: formattedUrl });
+      // Open the URL in an in-app browser
+      await Browser.open({
+        url: formattedUrl,
+        presentationStyle: 'popover',
+        windowName: '_self'
+      });
 
       // Save tab if user is logged in
       const activeTab = updatedTabs.find(tab => tab.id === tabId);
@@ -109,7 +126,11 @@ const Index = () => {
       // Get the active tab's URL and open it
       const activeTab = tabs.find(tab => tab.id === tabId);
       if (activeTab?.url) {
-        await Browser.open({ url: activeTab.url });
+        await Browser.open({
+          url: activeTab.url,
+          presentationStyle: 'popover',
+          windowName: '_self'
+        });
       }
     } catch (error) {
       console.error('Error switching tabs:', error);
@@ -147,4 +168,3 @@ const Index = () => {
 };
 
 export default Index;
-
