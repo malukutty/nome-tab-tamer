@@ -11,6 +11,7 @@ import { useTabOrganization } from '@/hooks/useTabOrganization';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
+import { Browser } from '@capacitor/browser';
 
 const Index = () => {
   const [tabs, setTabs] = useState<TabData[]>([
@@ -51,49 +52,67 @@ const Index = () => {
   };
 
   const handleNavigate = async (url: string) => {
+    // Format URL if needed
+    const formattedUrl = url.startsWith('http') ? url : `https://${url}`;
+    
     const updatedTabs = tabs.map(tab => 
       tab.id === activeTabId 
-        ? { ...tab, url, title: url } 
+        ? { ...tab, url: formattedUrl, title: formattedUrl } 
         : tab
     );
     setTabs(updatedTabs);
 
-    // Automatically organize the tab
-    const activeTab = updatedTabs.find(tab => tab.id === activeTabId);
-    if (activeTab && user) {
-      const groupId = organizeTab(activeTab);
-      if (groupId) {
-        try {
-          const { error } = await supabase
-            .from('saved_tabs')
-            .insert([{
-              title: activeTab.title,
-              url: activeTab.url,
-              group_id: groupId,
-              user_id: user.id
-            }]);
+    try {
+      await Browser.open({
+        url: formattedUrl,
+        presentationStyle: 'popover',
+        toolbarColor: '#ffffff',
+      });
 
-          if (error) throw error;
+      // Automatically organize the tab
+      const activeTab = updatedTabs.find(tab => tab.id === activeTabId);
+      if (activeTab && user) {
+        const groupId = organizeTab(activeTab);
+        if (groupId) {
+          try {
+            const { error } = await supabase
+              .from('saved_tabs')
+              .insert([{
+                title: activeTab.title,
+                url: activeTab.url,
+                group_id: groupId,
+                user_id: user.id
+              }]);
 
-          toast({
-            title: "Tab organized",
-            description: "Tab has been automatically organized into a group",
-          });
-        } catch (error) {
-          console.error('Error saving tab:', error);
-          toast({
-            title: "Error organizing tab",
-            description: "Failed to organize tab into group",
-            variant: "destructive",
-          });
+            if (error) throw error;
+
+            toast({
+              title: "Tab organized",
+              description: "Tab has been automatically organized into a group",
+            });
+          } catch (error) {
+            console.error('Error saving tab:', error);
+            toast({
+              title: "Error organizing tab",
+              description: "Failed to organize tab into group",
+              variant: "destructive",
+            });
+          }
         }
       }
+      
+      toast({
+        title: "Navigation started",
+        description: "Loading page in WebView...",
+      });
+    } catch (error) {
+      console.error('Error opening WebView:', error);
+      toast({
+        title: "Navigation error",
+        description: "Failed to open the page",
+        variant: "destructive",
+      });
     }
-    
-    toast({
-      title: "Navigation started",
-      description: "Loading new page...",
-    });
   };
 
   const handleSummarizeTabs = async () => {
@@ -143,10 +162,15 @@ const Index = () => {
         />
         <div className="flex items-center h-12 border-b border-nome-200">
           <NavigationControls
-            onBack={() => {}}
+            onBack={() => Browser.close()}
             onForward={() => {}}
-            onRefresh={() => {}}
-            canGoBack={false}
+            onRefresh={() => {
+              const activeTab = tabs.find(tab => tab.id === activeTabId);
+              if (activeTab?.url) {
+                handleNavigate(activeTab.url);
+              }
+            }}
+            canGoBack={true}
             canGoForward={false}
           />
           <AddressBar onNavigate={handleNavigate} />
