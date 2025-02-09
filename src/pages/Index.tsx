@@ -24,14 +24,12 @@ const Index = () => {
   const { organizeTab } = useTabOrganization();
   const { user } = useAuth();
 
-  // Set up browser event listeners
   useBrowserEvents();
 
   const handleNavigate = async (url: string, tabId: string) => {
     const formattedUrl = url.startsWith('http') ? url : `https://${url}`;
     
     try {
-      // Update only essential tab information
       const updatedTabs = tabs.map(tab => 
         tab.id === tabId 
           ? { 
@@ -46,19 +44,21 @@ const Index = () => {
       setTabs(updatedTabs);
 
       if (Capacitor.isNativePlatform()) {
-        // Dynamically import Browser plugin only in native environment
-        const { Browser } = await import('@capacitor/browser');
-        await Browser.close();
-        await Browser.open({
-          url: formattedUrl,
-          presentationStyle: 'fullscreen'
-        });
+        try {
+          const { Browser } = await import('@capacitor/browser');
+          await Browser.close();
+          await Browser.open({
+            url: formattedUrl,
+            presentationStyle: 'fullscreen'
+          });
+        } catch (error) {
+          console.log('Browser plugin not available:', error);
+          window.open(formattedUrl, '_blank');
+        }
       } else {
-        // In web environment, open in new tab
         window.open(formattedUrl, '_blank');
       }
 
-      // Save minimal tab data if user is logged in
       const activeTab = updatedTabs.find(tab => tab.id === tabId);
       if (activeTab && user) {
         const groupId = organizeTab(activeTab);
@@ -95,13 +95,16 @@ const Index = () => {
 
     try {
       if (Capacitor.isNativePlatform()) {
-        const { Browser } = await import('@capacitor/browser');
-        await Browser.close();
+        try {
+          const { Browser } = await import('@capacitor/browser');
+          await Browser.close();
+        } catch (error) {
+          console.log('Browser plugin not available:', error);
+        }
       }
       
       setActiveTabId(tabId);
       
-      // Only update the active state
       const { error } = await supabase
         .from('tab_states')
         .update({ is_active: true })
@@ -110,15 +113,19 @@ const Index = () => {
 
       if (error) throw error;
 
-      // Get minimal tab data and open URL
       const activeTab = tabs.find(tab => tab.id === tabId);
       if (activeTab?.url) {
         if (Capacitor.isNativePlatform()) {
-          const { Browser } = await import('@capacitor/browser');
-          await Browser.open({
-            url: activeTab.url,
-            presentationStyle: 'fullscreen'
-          });
+          try {
+            const { Browser } = await import('@capacitor/browser');
+            await Browser.open({
+              url: activeTab.url,
+              presentationStyle: 'fullscreen'
+            });
+          } catch (error) {
+            console.log('Browser plugin not available:', error);
+            window.open(activeTab.url, '_blank');
+          }
         } else {
           window.open(activeTab.url, '_blank');
         }

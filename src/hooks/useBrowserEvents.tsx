@@ -1,7 +1,6 @@
 
 import { useEffect } from 'react';
-import { Browser } from '@capacitor/browser';
-import { App } from '@capacitor/app';
+import { Capacitor } from '@capacitor/core';
 import { useToast } from '@/hooks/use-toast';
 
 export const useBrowserEvents = () => {
@@ -13,31 +12,39 @@ export const useBrowserEvents = () => {
     let appStateChangeListener: any;
 
     const setupListeners = async () => {
-      // Browser events
-      browserFinishedListener = await Browser.addListener('browserFinished', () => {
-        console.log('Browser finished');
-      });
+      if (Capacitor.isNativePlatform()) {
+        try {
+          const { Browser } = await import('@capacitor/browser');
+          const { App } = await import('@capacitor/app');
 
-      browserPageLoadedListener = await Browser.addListener('browserPageLoaded', () => {
-        console.log('Browser page loaded');
-      });
+          browserFinishedListener = await Browser.addListener('browserFinished', () => {
+            console.log('Browser finished');
+          });
 
-      // App lifecycle events
-      appStateChangeListener = await App.addListener('appStateChange', ({ isActive }) => {
-        console.log('App state changed:', isActive);
-        if (!isActive) {
-          // App went to background
-          Browser.close();
+          browserPageLoadedListener = await Browser.addListener('browserPageLoaded', () => {
+            console.log('Browser page loaded');
+          });
+
+          appStateChangeListener = await App.addListener('appStateChange', ({ isActive }) => {
+            console.log('App state changed:', isActive);
+            if (!isActive) {
+              Browser.close();
+            }
+          });
+        } catch (error) {
+          console.log('Capacitor plugins not available:', error);
         }
-      });
+      }
     };
 
     setupListeners();
 
     return () => {
-      browserFinishedListener?.remove();
-      browserPageLoadedListener?.remove();
-      appStateChangeListener?.remove();
+      if (Capacitor.isNativePlatform()) {
+        browserFinishedListener?.remove();
+        browserPageLoadedListener?.remove();
+        appStateChangeListener?.remove();
+      }
     };
   }, [toast]);
 };
