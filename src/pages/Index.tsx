@@ -31,10 +31,16 @@ const Index = () => {
     const formattedUrl = url.startsWith('http') ? url : `https://${url}`;
     
     try {
-      // Update the tab's URL first
+      // Update only essential tab information
       const updatedTabs = tabs.map(tab => 
         tab.id === tabId 
-          ? { ...tab, url: formattedUrl, title: formattedUrl } 
+          ? { 
+              id: tab.id,
+              url: formattedUrl,
+              title: formattedUrl,
+              order_index: tab.order_index,
+              is_active: tab.is_active
+            } 
           : tab
       );
       setTabs(updatedTabs);
@@ -42,16 +48,13 @@ const Index = () => {
       // Close any existing browser windows
       await Browser.close();
 
-      // Open the URL in an in-app browser
+      // Open the URL in an in-app browser with minimal options
       await Browser.open({
         url: formattedUrl,
-        presentationStyle: 'fullscreen',
-        toolbarColor: '#f8f9fa',
-        width: window.innerWidth,
-        height: window.innerHeight
+        presentationStyle: 'fullscreen'
       });
 
-      // Save tab if user is logged in
+      // Save minimal tab data if user is logged in
       const activeTab = updatedTabs.find(tab => tab.id === tabId);
       if (activeTab && user) {
         const groupId = organizeTab(activeTab);
@@ -96,37 +99,24 @@ const Index = () => {
     if (!user) return;
 
     try {
-      // Close any existing browser windows
       await Browser.close();
-
-      // Update active tab in state
       setActiveTabId(tabId);
       
-      // Update active state in database
-      const { error: updateError } = await supabase
-        .from('tab_states')
-        .update({ is_active: false })
-        .eq('user_id', user.id);
-
-      if (updateError) throw updateError;
-
-      const { error: activeError } = await supabase
+      // Only update the active state
+      const { error } = await supabase
         .from('tab_states')
         .update({ is_active: true })
         .eq('id', tabId)
         .eq('user_id', user.id);
 
-      if (activeError) throw activeError;
+      if (error) throw error;
 
-      // Get the active tab's URL and open it
+      // Get minimal tab data and open URL
       const activeTab = tabs.find(tab => tab.id === tabId);
       if (activeTab?.url) {
         await Browser.open({
           url: activeTab.url,
-          presentationStyle: 'fullscreen',
-          toolbarColor: '#f8f9fa',
-          width: window.innerWidth,
-          height: window.innerHeight
+          presentationStyle: 'fullscreen'
         });
       }
     } catch (error) {
