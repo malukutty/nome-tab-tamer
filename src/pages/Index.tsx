@@ -10,7 +10,7 @@ import Categories from '@/components/Browser/Categories';
 import WelcomeSection from '@/components/Browser/WelcomeSection';
 import { useBrowserEvents } from '@/hooks/useBrowserEvents';
 import Navbar from '@/components/Layout/Navbar';
-import { Browser } from '@capacitor/browser';
+import { Capacitor } from '@capacitor/core';
 
 const Index = () => {
   const {
@@ -45,44 +45,39 @@ const Index = () => {
       );
       setTabs(updatedTabs);
 
-      // Close any existing browser windows
-      await Browser.close();
-
-      // Open the URL in an in-app browser with minimal options
-      await Browser.open({
-        url: formattedUrl,
-        presentationStyle: 'fullscreen'
-      });
+      if (Capacitor.isNativePlatform()) {
+        // Dynamically import Browser plugin only in native environment
+        const { Browser } = await import('@capacitor/browser');
+        await Browser.close();
+        await Browser.open({
+          url: formattedUrl,
+          presentationStyle: 'fullscreen'
+        });
+      } else {
+        // In web environment, open in new tab
+        window.open(formattedUrl, '_blank');
+      }
 
       // Save minimal tab data if user is logged in
       const activeTab = updatedTabs.find(tab => tab.id === tabId);
       if (activeTab && user) {
         const groupId = organizeTab(activeTab);
         if (groupId) {
-          try {
-            const { error } = await supabase
-              .from('saved_tabs')
-              .insert([{
-                title: activeTab.title,
-                url: activeTab.url,
-                group_id: groupId,
-                user_id: user.id
-              }]);
+          const { error } = await supabase
+            .from('saved_tabs')
+            .insert([{
+              title: activeTab.title,
+              url: activeTab.url,
+              group_id: groupId,
+              user_id: user.id
+            }]);
 
-            if (error) throw error;
+          if (error) throw error;
 
-            toast({
-              title: "Tab organized",
-              description: "Tab has been automatically organized into a group",
-            });
-          } catch (error) {
-            console.error('Error saving tab:', error);
-            toast({
-              title: "Error organizing tab",
-              description: "Failed to organize tab into group",
-              variant: "destructive",
-            });
-          }
+          toast({
+            title: "Tab organized",
+            description: "Tab has been automatically organized into a group",
+          });
         }
       }
     } catch (error) {
@@ -99,7 +94,11 @@ const Index = () => {
     if (!user) return;
 
     try {
-      await Browser.close();
+      if (Capacitor.isNativePlatform()) {
+        const { Browser } = await import('@capacitor/browser');
+        await Browser.close();
+      }
+      
       setActiveTabId(tabId);
       
       // Only update the active state
@@ -114,10 +113,15 @@ const Index = () => {
       // Get minimal tab data and open URL
       const activeTab = tabs.find(tab => tab.id === tabId);
       if (activeTab?.url) {
-        await Browser.open({
-          url: activeTab.url,
-          presentationStyle: 'fullscreen'
-        });
+        if (Capacitor.isNativePlatform()) {
+          const { Browser } = await import('@capacitor/browser');
+          await Browser.open({
+            url: activeTab.url,
+            presentationStyle: 'fullscreen'
+          });
+        } else {
+          window.open(activeTab.url, '_blank');
+        }
       }
     } catch (error) {
       console.error('Error switching tabs:', error);
