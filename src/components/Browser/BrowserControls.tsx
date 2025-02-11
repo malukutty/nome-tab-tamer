@@ -1,5 +1,5 @@
 
-import { Capacitor } from '@capacitor/core';
+import { Browser } from '@capacitor/browser';
 import NavigationControls from './NavigationControls';
 import AddressBar from './AddressBar';
 
@@ -9,27 +9,16 @@ interface BrowserControlsProps {
 }
 
 const BrowserControls = ({ onNavigate, activeTabUrl }: BrowserControlsProps) => {
-  const handleBack = async () => {
-    if (Capacitor.isNativePlatform()) {
-      const { Browser } = await import('@capacitor/browser');
-      await Browser.close();
-    } else {
-      window.history.back();
-    }
-  };
-
-  const handleRefresh = () => {
-    if (activeTabUrl) {
-      onNavigate(activeTabUrl);
-    }
-  };
-
   return (
     <div className="flex items-center h-12 border-b border-nome-200">
       <NavigationControls
-        onBack={handleBack}
+        onBack={() => Browser.close()}
         onForward={() => {}}
-        onRefresh={handleRefresh}
+        onRefresh={() => {
+          if (activeTabUrl) {
+            onNavigate(activeTabUrl);
+          }
+        }}
         canGoBack={true}
         canGoForward={false}
       />

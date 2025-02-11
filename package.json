@@ -12,7 +12,6 @@
   },
   "dependencies": {
     "@capacitor/android": "^7.0.1",
-    "@capacitor/app": "^7.0.0",
     "@capacitor/browser": "^7.0.0",
     "@capacitor/core": "^7.0.1",
     "@hookform/resolvers": "^3.9.0",
