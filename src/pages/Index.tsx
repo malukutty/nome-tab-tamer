@@ -44,17 +44,12 @@ const Index = () => {
       setTabs(updatedTabs);
 
       if (Capacitor.isNativePlatform()) {
-        try {
-          const { Browser } = await import('@capacitor/browser');
-          await Browser.close();
-          await Browser.open({
-            url: formattedUrl,
-            presentationStyle: 'fullscreen'
-          });
-        } catch (error) {
-          console.log('Browser plugin not available:', error);
-          window.open(formattedUrl, '_blank');
-        }
+        const { Browser } = await import('@capacitor/browser');
+        await Browser.close();
+        await Browser.open({
+          url: formattedUrl,
+          presentationStyle: 'fullscreen'
+        });
       } else {
         window.open(formattedUrl, '_blank');
       }
@@ -95,12 +90,8 @@ const Index = () => {
 
     try {
       if (Capacitor.isNativePlatform()) {
-        try {
-          const { Browser } = await import('@capacitor/browser');
-          await Browser.close();
-        } catch (error) {
-          console.log('Browser plugin not available:', error);
-        }
+        const { Browser } = await import('@capacitor/browser');
+        await Browser.close();
       }
       
       setActiveTabId(tabId);
@@ -116,16 +107,11 @@ const Index = () => {
       const activeTab = tabs.find(tab => tab.id === tabId);
       if (activeTab?.url) {
         if (Capacitor.isNativePlatform()) {
-          try {
-            const { Browser } = await import('@capacitor/browser');
-            await Browser.open({
-              url: activeTab.url,
-              presentationStyle: 'fullscreen'
-            });
-          } catch (error) {
-            console.log('Browser plugin not available:', error);
-            window.open(activeTab.url, '_blank');
-          }
+          const { Browser } = await import('@capacitor/browser');
+          await Browser.open({
+            url: activeTab.url,
+            presentationStyle: 'fullscreen'
+          });
         } else {
           window.open(activeTab.url, '_blank');
         }

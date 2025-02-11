@@ -11,12 +11,8 @@ interface BrowserControlsProps {
 const BrowserControls = ({ onNavigate, activeTabUrl }: BrowserControlsProps) => {
   const handleBack = async () => {
     if (Capacitor.isNativePlatform()) {
-      try {
-        const { Browser } = await import('@capacitor/browser');
-        await Browser.close();
-      } catch (error) {
-        console.log('Browser plugin not available:', error);
-      }
+      const { Browser } = await import('@capacitor/browser');
+      await Browser.close();
     } else {
       window.history.back();
     }
