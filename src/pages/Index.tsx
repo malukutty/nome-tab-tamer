@@ -10,7 +10,7 @@ import Categories from '@/components/Browser/Categories';
 import WelcomeSection from '@/components/Browser/WelcomeSection';
 import { useBrowserEvents } from '@/hooks/useBrowserEvents';
 import Navbar from '@/components/Layout/Navbar';
-import { Capacitor } from '@capacitor/core';
+import { Browser } from '@capacitor/browser';
 
 const Index = () => {
   const {
@@ -24,55 +24,53 @@ const Index = () => {
   const { organizeTab } = useTabOrganization();
   const { user } = useAuth();
 
+  // Set up browser event listeners
   useBrowserEvents();
 
   const handleNavigate = async (url: string, tabId: string) => {
     const formattedUrl = url.startsWith('http') ? url : `https://${url}`;
     
     try {
+      // Update the tab's URL first
       const updatedTabs = tabs.map(tab => 
         tab.id === tabId 
-          ? { 
-              id: tab.id,
-              url: formattedUrl,
-              title: formattedUrl,
-              order_index: tab.order_index,
-              is_active: tab.is_active
-            } 
+          ? { ...tab, url: formattedUrl, title: formattedUrl } 
           : tab
       );
       setTabs(updatedTabs);
 
-      if (Capacitor.isNativePlatform()) {
-        const { Browser } = await import('@capacitor/browser');
-        await Browser.close();
-        await Browser.open({
-          url: formattedUrl,
-          presentationStyle: 'fullscreen'
-        });
-      } else {
-        window.open(formattedUrl, '_blank');
-      }
+      // Open the URL in the system browser
+      await Browser.open({ url: formattedUrl });
 
+      // Save tab if user is logged in
       const activeTab = updatedTabs.find(tab => tab.id === tabId);
       if (activeTab && user) {
         const groupId = organizeTab(activeTab);
         if (groupId) {
-          const { error } = await supabase
-            .from('saved_tabs')
-            .insert([{
-              title: activeTab.title,
-              url: activeTab.url,
-              group_id: groupId,
-              user_id: user.id
-            }]);
+          try {
+            const { error } = await supabase
+              .from('saved_tabs')
+              .insert([{
+                title: activeTab.title,
+                url: activeTab.url,
+                group_id: groupId,
+                user_id: user.id
+              }]);
 
-          if (error) throw error;
+            if (error) throw error;
 
-          toast({
-            title: "Tab organized",
-            description: "Tab has been automatically organized into a group",
-          });
+            toast({
+              title: "Tab organized",
+              description: "Tab has been automatically organized into a group",
+            });
+          } catch (error) {
+            console.error('Error saving tab:', error);
+            toast({
+              title: "Error organizing tab",
+              description: "Failed to organize tab into group",
+              variant: "destructive",
+            });
+          }
         }
       }
     } catch (error) {
@@ -89,32 +87,29 @@ const Index = () => {
     if (!user) return;
 
     try {
-      if (Capacitor.isNativePlatform()) {
-        const { Browser } = await import('@capacitor/browser');
-        await Browser.close();
-      }
-      
+      // Update active tab in state
       setActiveTabId(tabId);
       
-      const { error } = await supabase
+      // Update active state in database
+      const { error: updateError } = await supabase
+        .from('tab_states')
+        .update({ is_active: false })
+        .eq('user_id', user.id);
+
+      if (updateError) throw updateError;
+
+      const { error: activeError } = await supabase
         .from('tab_states')
         .update({ is_active: true })
         .eq('id', tabId)
         .eq('user_id', user.id);
 
-      if (error) throw error;
+      if (activeError) throw activeError;
 
+      // Get the active tab's URL and open it
       const activeTab = tabs.find(tab => tab.id === tabId);
       if (activeTab?.url) {
-        if (Capacitor.isNativePlatform()) {
-          const { Browser } = await import('@capacitor/browser');
-          await Browser.open({
-            url: activeTab.url,
-            presentationStyle: 'fullscreen'
-          });
-        } else {
-          window.open(activeTab.url, '_blank');
-        }
+        await Browser.open({ url: activeTab.url });
       }
     } catch (error) {
       console.error('Error switching tabs:', error);
@@ -152,3 +147,4 @@ const Index = () => {
 };
 
 export default Index;
+
